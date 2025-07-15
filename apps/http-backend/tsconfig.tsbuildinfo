@@ -1,0 +1,1 @@
+{"root":["./src/index.ts","./src/middleware.ts","./src/controllers/auth/signin.ts","./src/controllers/auth/signup.ts","./src/handlers/createroom.ts","./src/handlers/getmessages.ts","./src/handlers/getroombyslug.ts","./src/handlers/getroomsbyowner.ts"],"version":"5.8.3"}

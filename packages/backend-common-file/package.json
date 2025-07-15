@@ -1,0 +1,22 @@
+{
+  "name": "@repo/backend-common-file",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/config.js",       
+  "types": "dist/config.d.ts",     
+  "exports": {
+  "./config": {
+    "import": "./dist/config.js",
+    "types": "./dist/config.d.ts"
+  }
+},
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*"
+  },
+  "dependencies": {
+    "@types/node": "^22.15.3"
+  }
+}

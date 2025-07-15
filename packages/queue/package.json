@@ -1,0 +1,23 @@
+{
+  "name": "@repo/queue",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*"
+  },
+  "description": "In-memory task queue for background jobs",
+  "author": "Debjyoti",
+  "license": "MIT",
+  "keywords": ["queue", "job", "task", "background", "monorepo"]
+}
