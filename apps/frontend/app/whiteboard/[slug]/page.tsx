@@ -13,7 +13,7 @@ export default function WhiteboardPage({ params }: { params: Promise<{ slug: str
   const [selectedShape, setSelectedShape] = useState<Shape["type"]>("rect");
   const socketRef = useRef<WebSocket | null>(null);
 
-  // ✅ Fetch roomId from slug using API
+  // Fetch roomId from slug using API
   useEffect(() => {
     const fetchRoomId = async () => {
       const token = localStorage.getItem("token");
@@ -39,7 +39,7 @@ export default function WhiteboardPage({ params }: { params: Promise<{ slug: str
     fetchRoomId();
   }, [slug]);
 
-  // ✅ Fetch old shapes from DB (via messages API)
+  // Fetch old shapes from DB (via messages API)
   useEffect(() => {
     if (!roomId) return;
 
@@ -78,7 +78,7 @@ export default function WhiteboardPage({ params }: { params: Promise<{ slug: str
     fetchShapes();
   }, [roomId]);
 
-  // ✅ WebSocket setup
+  // WebSocket setup
   useEffect(() => {
     if (!roomId) return;
 
@@ -111,7 +111,7 @@ export default function WhiteboardPage({ params }: { params: Promise<{ slug: str
     return () => socket.close();
   }, [roomId]);
 
-  // ✅ Send shape to WS & DB
+  // Send shape to WS & DB
   const handleShapeDraw = (shape: Shape) => {
     setShapes((prev) => [...prev, shape]);
     if (socketRef.current && roomId) {
@@ -128,18 +128,25 @@ export default function WhiteboardPage({ params }: { params: Promise<{ slug: str
   return (
     <div className="w-screen h-screen bg-gray-900 text-white">
       {/* Toolbar */}
-      <div className="flex gap-3 p-4 bg-gray-800 fixed top-0 left-0 z-10">
-        {["rect", "line", "ellipse", "triangle", "arrow", "star", "freehand"].map((type) => (
-          <button
-            key={type}
-            onClick={() => setSelectedShape(type as Shape["type"])}
-            className={`px-4 py-2 rounded ${
-              selectedShape === type ? "bg-blue-600" : "bg-gray-700"
-            }`}
-          >
-            {type}
-          </button>
-        ))}
+      <div className="flex gap-3 p-4 bg-gray-800 fixed top-0 left-0 z-10 w-full items-center justify-between">
+        <div className="flex gap-3">
+          {["rect", "line", "ellipse", "triangle", "arrow", "star", "freehand"].map((type) => (
+            <button
+              key={type}
+              onClick={() => setSelectedShape(type as Shape["type"])}
+              className={`px-4 py-2 rounded ${
+                selectedShape === type ? "bg-blue-600" : "bg-gray-700"
+              }`}
+            >
+              {type}
+            </button>
+          ))}
+        </div>
+
+        {/* Show Room Slug */}
+        <div className="text-sm bg-gray-700 px-4 py-2 rounded">
+          Room Slug: <span className="text-blue-400 font-bold">{slug}</span>
+        </div>
       </div>
 
       {/* Canvas */}

@@ -39,13 +39,13 @@ export default function JoinRoomPage() {
       const data = await res.json();
       const { id: roomId, slug } = data.room;
 
-      // ✅ Save both ID and Slug in localStorage
+      // Save both ID and Slug in localStorage
       localStorage.setItem("latestRoomId", roomId);
       localStorage.setItem("latestSlug", slug);
 
       console.log("[JOIN ROOM] Saved:", { roomId, slug });
 
-      // ✅ Navigate using slug for user-friendly URL
+      // Navigate using slug for user-friendly URL
       router.push(`/whiteboard/${slug}`);
     } catch (err: any) {
       setError(err.message || "Failed to join room.");

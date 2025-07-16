@@ -17,7 +17,7 @@ export default function RoomCard({ room }: { room: Room }) {
   const [createdAtText, setCreatedAtText] = useState("");
 
   useEffect(() => {
-    // ✅ Run only on client to avoid SSR mismatch
+    // Run only on client to avoid SSR mismatch
     setCreatedAtText(new Date(room.createdAt).toLocaleString());
   }, [room.createdAt]);
 

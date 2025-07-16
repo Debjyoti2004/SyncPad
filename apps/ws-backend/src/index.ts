@@ -53,7 +53,7 @@ wss.on("connection", (ws, request) => {
 
       const { type, room, message } = parsedData;
 
-      // ✅ Handle Join Room
+      // Handle Join Room
       if (type === "joinRoom") {
         console.log(`[WS] User ${user.userId} joining room: ${room}`);
 
@@ -70,14 +70,14 @@ wss.on("connection", (ws, request) => {
         return;
       }
 
-      // ✅ Handle Leave Room
+      // Handle Leave Room
       if (type === "leaveRoom") {
         user.rooms = user.rooms.filter((r) => r !== room);
         ws.send(JSON.stringify({ type: "leftRoom", room }));
         return;
       }
 
-      // ✅ Handle Shape Message
+      // Handle Shape Message
       if (type === "message") {
         console.log("[WS] Incoming shape message:", { room, message });
 
@@ -92,7 +92,7 @@ wss.on("connection", (ws, request) => {
         }
 
         try {
-          // ✅ Check if Room exists in DB
+          // Check if Room exists in DB
           const existingRoom = await prismaClient.room.findUnique({ where: { id: room } });
           console.log("[WS] Room check:", existingRoom);
 
@@ -101,7 +101,7 @@ wss.on("connection", (ws, request) => {
             return;
           }
 
-          // ✅ Save shape as chat message
+          // Save shape as chat message
           const chatEntry = await prismaClient.chat.create({
             data: {
               content: message, // Shape JSON string
@@ -112,7 +112,7 @@ wss.on("connection", (ws, request) => {
 
           console.log("[WS] Shape stored in DB:", chatEntry);
 
-          // ✅ Broadcast to all users in the room
+          // Broadcast to all users in the room
           users.forEach((u) => {
             if (u.rooms.includes(room)) {
               u.ws.send(

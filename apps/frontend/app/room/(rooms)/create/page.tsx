@@ -65,7 +65,7 @@ export default function CreateRoomPage() {
       localStorage.setItem("latestSlug", res.room.slug);
 
       // Redirect to chat room
-      router.push(`/whiteboard/${res.room.slug}`);   // there i change 
+      router.push(`/whiteboard/${res.room.slug}`);   
     } catch (err: any) {
       setError(err.message || "Room creation failed.");
     } finally {
