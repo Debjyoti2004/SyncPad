@@ -37,10 +37,16 @@ export default function JoinRoomPage() {
       if (!res.ok) throw new Error("Room not found or unauthorized");
 
       const data = await res.json();
-      const roomId = data.room.id;
+      const { id: roomId, slug } = data.room;
 
-      // Redirect to the dynamic chat route
-      router.push(`/chat/${roomId}`);
+      // ✅ Save both ID and Slug in localStorage
+      localStorage.setItem("latestRoomId", roomId);
+      localStorage.setItem("latestSlug", slug);
+
+      console.log("[JOIN ROOM] Saved:", { roomId, slug });
+
+      // ✅ Navigate using slug for user-friendly URL
+      router.push(`/whiteboard/${slug}`);
     } catch (err: any) {
       setError(err.message || "Failed to join room.");
     } finally {

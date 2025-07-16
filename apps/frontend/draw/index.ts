@@ -1,5 +1,3 @@
-// draw.ts
-
 export type Shape =
   | { type: "rect"; x: number; y: number; width: number; height: number }
   | { type: "line"; x1: number; y1: number; x2: number; y2: number }
@@ -11,6 +9,7 @@ export type Shape =
 
 let freehandPath: { x: number; y: number }[] | null = null;
 
+// Draw Arrow helper
 function drawArrow(ctx: CanvasRenderingContext2D, fromX: number, fromY: number, toX: number, toY: number) {
   const headLength = 10;
   const dx = toX - fromX;
@@ -32,15 +31,10 @@ function drawArrow(ctx: CanvasRenderingContext2D, fromX: number, fromY: number, 
   ctx.stroke();
 }
 
-function drawStar(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  spikes: number,
-  outerRadius: number
-) {
+// Draw Star helper
+function drawStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, spikes: number, outerRadius: number) {
   const step = Math.PI / spikes;
-  let rot = Math.PI / 2 * 3;
+  let rot = (Math.PI / 2) * 3;
   let x = cx;
   let y = cy;
   const innerRadius = outerRadius / 2;
@@ -65,22 +59,24 @@ function drawStar(
   ctx.stroke();
 }
 
+// Main Draw Function
 export default function Draw(
   canvas: HTMLCanvasElement,
   isDrawing: React.MutableRefObject<boolean>,
   start: React.MutableRefObject<{ x: number; y: number }>,
-  selectedShape: Shape["type"]
+  selectedShape: Shape["type"],
+  onShapeDraw: (shape: Shape) => void,
+  shapes: Shape[] = []
 ) {
   if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
 
-  let existingShapes: Shape[] = [];
+  const ctx = canvas.getContext("2d")!; 
+  let existingShapes: Shape[] = [...shapes];
 
   const resizeCanvas = () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    clearCanvas(existingShapes, ctx);
+    renderShapes(existingShapes);
   };
 
   resizeCanvas();
@@ -103,7 +99,7 @@ export default function Draw(
     const width = endX - start.current.x;
     const height = endY - start.current.y;
 
-    clearCanvas(existingShapes, ctx);
+    renderShapes(existingShapes);
     ctx.strokeStyle = "white";
     ctx.lineWidth = 2;
 
@@ -145,7 +141,7 @@ export default function Draw(
         drawStar(ctx, start.current.x, start.current.y, 5, Math.sqrt(width ** 2 + height ** 2));
         break;
       case "freehand":
-        if (freehandPath && freehandPath.length > 0) {
+        if (freehandPath) {
           freehandPath.push({ x: endX, y: endY });
           ctx.beginPath();
           ctx.moveTo(freehandPath[0].x, freehandPath[0].y);
@@ -166,57 +162,64 @@ export default function Draw(
     const width = endX - start.current.x;
     const height = endY - start.current.y;
 
+    let newShape: Shape | null = null;
+
     switch (selectedShape) {
       case "rect":
-        existingShapes.push({ type: "rect", x: start.current.x, y: start.current.y, width, height });
+        newShape = { type: "rect", x: start.current.x, y: start.current.y, width, height };
         break;
       case "line":
-        existingShapes.push({ type: "line", x1: start.current.x, y1: start.current.y, x2: endX, y2: endY });
+        newShape = { type: "line", x1: start.current.x, y1: start.current.y, x2: endX, y2: endY };
         break;
       case "ellipse":
-        existingShapes.push({
+        newShape = {
           type: "ellipse",
           centerX: start.current.x + width / 2,
           centerY: start.current.y + height / 2,
           radiusX: Math.abs(width / 2),
           radiusY: Math.abs(height / 2),
-        });
+        };
         break;
       case "triangle":
-        existingShapes.push({ type: "triangle", x1: start.current.x, y1: start.current.y, x2: endX, y2: endY });
+        newShape = { type: "triangle", x1: start.current.x, y1: start.current.y, x2: endX, y2: endY };
         break;
       case "arrow":
-        existingShapes.push({ type: "arrow", fromX: start.current.x, fromY: start.current.y, toX: endX, toY: endY });
+        newShape = { type: "arrow", fromX: start.current.x, fromY: start.current.y, toX: endX, toY: endY };
         break;
       case "star":
-        existingShapes.push({
+        newShape = {
           type: "star",
           centerX: start.current.x,
           centerY: start.current.y,
           outerRadius: Math.sqrt(width ** 2 + height ** 2),
           points: 5,
-        });
+        };
         break;
       case "freehand":
-        if (freehandPath && freehandPath.length > 0) {
-          existingShapes.push({ type: "freehand", points: [...freehandPath] });
+        if (freehandPath) {
+          newShape = { type: "freehand", points: [...freehandPath] };
           freehandPath = null;
         }
         break;
     }
 
-    clearCanvas(existingShapes, ctx);
+    if (newShape) {
+      existingShapes.push(newShape);
+      onShapeDraw(newShape);
+    }
+
+    renderShapes(existingShapes);
     isDrawing.current = false;
   };
 
-  function clearCanvas(shapes: Shape[], ctx: CanvasRenderingContext2D) {
+  function renderShapes(shapes: Shape[]) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "black";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.strokeStyle = "white";
     ctx.lineWidth = 2;
 
-    shapes.forEach((shape) => {
+    for (const shape of shapes) {
       switch (shape.type) {
         case "rect":
           ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
@@ -247,7 +250,7 @@ export default function Draw(
           drawStar(ctx, shape.centerX, shape.centerY, shape.points, shape.outerRadius);
           break;
         case "freehand":
-          if (shape.points?.length > 0) {
+          if (shape.points?.length) {
             ctx.beginPath();
             ctx.moveTo(shape.points[0].x, shape.points[0].y);
             for (let i = 1; i < shape.points.length; i++) {
@@ -257,7 +260,7 @@ export default function Draw(
           }
           break;
       }
-    });
+    }
   }
 
   canvas.addEventListener("mousedown", handleMouseDown);

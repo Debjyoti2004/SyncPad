@@ -1,80 +1,84 @@
 "use client";
 
-import { use, useEffect, useRef, useState } from "react";
-import Canvas from "../../components/Canvas"; 
-import { Shape } from "../../../draw"; 
-import { BACKEND_URL } from "../../config";
+import { use, useState, useEffect, useRef } from "react";
+import Canvas from "../../components/Canvas";
+import { Shape } from "../../../draw";
 import { connectWebSocket, sendMessage } from "../../../lib/socket";
+import { BACKEND_URL } from "../../config";
 
 export default function WhiteboardPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = use(params); // unwrap params
+  const { slug } = use(params);
+  const [roomId, setRoomId] = useState<string | null>(null);
   const [shapes, setShapes] = useState<Shape[]>([]);
   const [selectedShape, setSelectedShape] = useState<Shape["type"]>("rect");
   const socketRef = useRef<WebSocket | null>(null);
-  const [roomId, setRoomId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
-  // Fetch room ID from slug
+  // ✅ Fetch roomId from slug using API
   useEffect(() => {
     const fetchRoomId = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) throw new Error("No token found");
+      const token = localStorage.getItem("token");
+      if (!token || !slug) return;
 
+      try {
         const res = await fetch(`${BACKEND_URL}/rooms/${slug}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
 
-        if (!res.ok) throw new Error("Failed to fetch room details");
+        if (!res.ok) throw new Error("Failed to fetch roomId");
 
         const data = await res.json();
+        console.log("[Frontend] Room details:", data.room);
         setRoomId(data.room.id);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err) {
+        console.error("[Frontend] Error fetching roomId:", err);
       }
     };
 
     fetchRoomId();
   }, [slug]);
 
-  // Fetch old shapes
+  // ✅ Fetch old shapes from DB (via messages API)
   useEffect(() => {
     if (!roomId) return;
 
     const fetchShapes = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) throw new Error("No token");
+      const token = localStorage.getItem("token");
+      if (!token) return;
 
+      try {
         const res = await fetch(`${BACKEND_URL}/messages/${roomId}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
 
         if (!res.ok) throw new Error("Failed to load shapes");
 
         const data = await res.json();
-        const oldShapes: Shape[] = [];
+        console.log("[Frontend] Old shapes from DB:", data);
 
+        const oldShapes: Shape[] = [];
         for (const msg of data.messages || []) {
           try {
             const parsed = JSON.parse(msg.content);
             if (parsed.type) oldShapes.push(parsed);
-          } catch {}
+          } catch {
+            console.warn("[Frontend] Skipped invalid message:", msg.content);
+          }
         }
 
-        setShapes(oldShapes.reverse()); // show in order
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+        setShapes(oldShapes);
+      } catch (err) {
+        console.error("[Frontend] Error loading shapes:", err);
       }
     };
 
     fetchShapes();
   }, [roomId]);
 
-  // Setup WebSocket
+  // ✅ WebSocket setup
   useEffect(() => {
     if (!roomId) return;
 
@@ -83,6 +87,7 @@ export default function WhiteboardPage({ params }: { params: Promise<{ slug: str
     socketRef.current = socket;
 
     socket.onopen = () => {
+      console.log("[Frontend] WebSocket connected");
       socket.send(JSON.stringify({ type: "joinRoom", room: roomId }));
     };
 
@@ -96,31 +101,29 @@ export default function WhiteboardPage({ params }: { params: Promise<{ slug: str
           }
         }
       } catch (err) {
-        console.error("WebSocket parse error", err);
+        console.log("[Frontend] Invalid WS message:", event.data);
       }
     };
 
-    socket.onerror = (event) => console.error("WebSocket error", event);
-    socket.onclose = () => console.log("WebSocket closed");
+    socket.onerror = (event) => console.error("[Frontend] WS Error:", event);
+    socket.onclose = () => console.log("[Frontend] WS Closed");
 
     return () => socket.close();
   }, [roomId]);
 
-  // When user draws a new shape → send to WebSocket → backend saves in DB
+  // ✅ Send shape to WS & DB
   const handleShapeDraw = (shape: Shape) => {
-    if (!roomId) return;
-
-    sendMessage({
-      type: "message",
-      room: roomId,
-      message: JSON.stringify(shape),
-    });
-
-    setShapes((prev) => [...prev, shape]); // optimistic update
+    setShapes((prev) => [...prev, shape]);
+    if (socketRef.current && roomId) {
+      sendMessage({
+        type: "message",
+        room: roomId,
+        message: JSON.stringify(shape),
+      });
+    } else {
+      console.error("[Frontend] Cannot send shape: socket or roomId missing");
+    }
   };
-
-  if (loading) return <p className="text-white p-4">Loading Whiteboard...</p>;
-  if (error) return <p className="text-red-500 p-4">Error: {error}</p>;
 
   return (
     <div className="w-screen h-screen bg-gray-900 text-white">

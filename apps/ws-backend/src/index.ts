@@ -1,7 +1,7 @@
-import { WebSocketServer, WebSocket } from 'ws';
-import Jwt from 'jsonwebtoken';
-import { JWT_SECRET } from '@repo/backend-common-file/config';
-import prismaClient from '@repo/db';
+import { WebSocketServer, WebSocket } from "ws";
+import Jwt from "jsonwebtoken";
+import { JWT_SECRET } from "@repo/backend-common-file/config";
+import prismaClient from "@repo/db";
 
 const wss = new WebSocketServer({ port: 8080 });
 
@@ -13,7 +13,7 @@ interface User {
 
 const users: User[] = [];
 
-wss.on('connection', (ws, request) => {
+wss.on("connection", (ws, request) => {
   try {
     const url = request.url;
     if (!url) {
@@ -21,8 +21,8 @@ wss.on('connection', (ws, request) => {
       return;
     }
 
-    const queryParams = new URLSearchParams(url.split('?')[1]);
-    const token = queryParams.get('token');
+    const queryParams = new URLSearchParams(url.split("?")[1]);
+    const token = queryParams.get("token");
     if (!token) {
       ws.close(1008, "Token missing");
       return;
@@ -31,29 +31,34 @@ wss.on('connection', (ws, request) => {
     const decoded = Jwt.verify(token, JWT_SECRET) as { userId: string };
     const userId = decoded.userId;
 
+    console.log(`[WS] New connection: userId=${userId}`);
+
     users.push({ userId, ws, rooms: [] });
 
-    ws.on('message', async (data) => {
+    ws.on("message", async (data) => {
       let parsedData: any;
 
       try {
         parsedData = JSON.parse(data.toString());
       } catch {
-        ws.send(JSON.stringify({ error: 'Invalid JSON format' }));
+        ws.send(JSON.stringify({ error: "Invalid JSON format" }));
         return;
       }
 
-      const user = users.find(u => u.ws === ws);
+      const user = users.find((u) => u.ws === ws);
       if (!user) {
-        ws.send(JSON.stringify({ error: 'User not found' }));
+        ws.send(JSON.stringify({ error: "User not found" }));
         return;
       }
 
       const { type, room, message } = parsedData;
 
-      if (type === 'joinRoom') {
-        if (!room || typeof room !== 'string') {
-          ws.send(JSON.stringify({ error: 'Invalid or missing room ID' }));
+      // ✅ Handle Join Room
+      if (type === "joinRoom") {
+        console.log(`[WS] User ${user.userId} joining room: ${room}`);
+
+        if (!room || typeof room !== "string") {
+          ws.send(JSON.stringify({ error: "Invalid or missing room ID" }));
           return;
         }
 
@@ -61,69 +66,86 @@ wss.on('connection', (ws, request) => {
           user.rooms.push(room);
         }
 
-        ws.send(JSON.stringify({ type: 'joinedRoom', room }));
+        ws.send(JSON.stringify({ type: "joinedRoom", room }));
+        return;
       }
 
-      else if (type === 'leaveRoom') {
-        user.rooms = user.rooms.filter(r => r !== room);
-        ws.send(JSON.stringify({ type: 'leftRoom', room }));
+      // ✅ Handle Leave Room
+      if (type === "leaveRoom") {
+        user.rooms = user.rooms.filter((r) => r !== room);
+        ws.send(JSON.stringify({ type: "leftRoom", room }));
+        return;
       }
 
-      else if (type === 'message') {
-        if (!room || typeof room !== 'string') {
-          ws.send(JSON.stringify({ error: 'Room ID is required and must be a string' }));
+      // ✅ Handle Shape Message
+      if (type === "message") {
+        console.log("[WS] Incoming shape message:", { room, message });
+
+        if (!room || typeof room !== "string") {
+          ws.send(JSON.stringify({ error: "Room ID is required and must be a string" }));
           return;
         }
 
-        if (!message || typeof message !== 'string') {
-          ws.send(JSON.stringify({ error: 'Message content is required and must be a string' }));
+        if (!message || typeof message !== "string") {
+          ws.send(JSON.stringify({ error: "Message content is required and must be a string" }));
           return;
         }
 
         try {
+          // ✅ Check if Room exists in DB
           const existingRoom = await prismaClient.room.findUnique({ where: { id: room } });
+          console.log("[WS] Room check:", existingRoom);
+
           if (!existingRoom) {
-            ws.send(JSON.stringify({ error: 'Room not found' }));
+            ws.send(JSON.stringify({ error: "Room not found" }));
             return;
           }
 
-          await prismaClient.chat.create({
+          // ✅ Save shape as chat message
+          const chatEntry = await prismaClient.chat.create({
             data: {
-              content: message,
+              content: message, // Shape JSON string
               roomId: room,
               userId: user.userId,
             },
           });
 
-          users.forEach(u => {
+          console.log("[WS] Shape stored in DB:", chatEntry);
+
+          // ✅ Broadcast to all users in the room
+          users.forEach((u) => {
             if (u.rooms.includes(room)) {
-              u.ws.send(JSON.stringify({
-                type: 'message',
-                room,
-                message,
-                sender: user.userId,
-              }));
+              u.ws.send(
+                JSON.stringify({
+                  type: "message",
+                  room,
+                  message,
+                  sender: user.userId,
+                })
+              );
             }
           });
         } catch (err: any) {
-          console.error("Error handling message:", err);
-          ws.send(JSON.stringify({ error: 'Failed to send message' }));
+          console.error("[WS] Error handling message:", err);
+          ws.send(JSON.stringify({ error: "Failed to send message" }));
         }
+
+        return;
       }
 
-      else {
-        ws.send(JSON.stringify({ error: 'Unknown message type' }));
-      }
+      // ✅ Unknown Type
+      ws.send(JSON.stringify({ error: "Unknown message type" }));
     });
 
-    ws.on('close', () => {
-      const index = users.findIndex(u => u.ws === ws);
+    ws.on("close", () => {
+      console.log(`[WS] Connection closed: userId=${userId}`);
+      const index = users.findIndex((u) => u.ws === ws);
       if (index !== -1) users.splice(index, 1);
     });
 
-    ws.send('Connected to WebSocket server');
+    ws.send("Connected to WebSocket server");
   } catch (err) {
-    console.error("Connection error:", err);
+    console.error("[WS] Connection error:", err);
     ws.close(1008, "Unauthorized or Internal Error");
   }
 });

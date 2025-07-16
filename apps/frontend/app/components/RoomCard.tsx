@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 type Room = {
   id: string;
@@ -14,67 +14,46 @@ type Room = {
 
 export default function RoomCard({ room }: { room: Room }) {
   const router = useRouter();
+  const [createdAtText, setCreatedAtText] = useState("");
+
+  useEffect(() => {
+    // ✅ Run only on client to avoid SSR mismatch
+    setCreatedAtText(new Date(room.createdAt).toLocaleString());
+  }, [room.createdAt]);
 
   const handleClick = () => {
     if (!room.slug) {
       console.error("Room slug is missing");
       return;
     }
-    // Store slug for display purpose
     localStorage.setItem("latestSlug", room.slug);
-    if (!room.id) {
-      console.error("Room ID is missing");
-      return;
-    }
-    // Navigate to the chat room page when we click on the card
-    router.push(`/chat/${room.id}`);
+    router.push(`/whiteboard/${room.slug}`);
   };
 
   return (
     <div
       onClick={handleClick}
-      style={{
-        backgroundColor: "#1e1e1e",
-        borderRadius: "12px",
-        boxShadow: "0 4px 8px rgba(255, 255, 255, 0.05)",
-        padding: "20px",
-        minWidth: "280px",
-        maxWidth: "360px",
-        flex: "1 1 300px",
-        transition: "transform 0.2s",
-        cursor: "pointer",
-        color: "#f1f1f1",
-      }}
-      onMouseEnter={(e) =>
-        (e.currentTarget.style.transform = "translateY(-2px)")
-      }
-      onMouseLeave={(e) =>
-        (e.currentTarget.style.transform = "translateY(0)")
-      }
+      className="bg-gray-900 rounded-xl shadow-md p-6 min-w-[280px] max-w-[360px] flex-1 cursor-pointer hover:scale-105 transition-transform text-white"
     >
-      <h2 style={{ fontSize: "20px", marginBottom: "10px", color: "#fff" }}>
-        <strong>Room Name: </strong>{room.name}
+      <h2 className="text-xl font-bold mb-3">
+        Room Name: <span className="font-normal">{room.name}</span>
       </h2>
-      <p style={{ margin: "6px 0", color: "#ccc" }}>
-        <strong>Room ID: </strong> {room.slug}
+      <p className="text-gray-300 mb-2">
+        <strong>Room Slug:</strong> {room.slug}
       </p>
-      <p style={{ margin: "6px 0", color: "#ccc" }}>
+      <p className="text-gray-300 mb-2">
         <strong>Description:</strong>{" "}
         {room.description ? room.description : "No description"}
       </p>
-
       <p
-        style={{
-          margin: "6px 0",
-          color: room.isPublic ? "#4caf50" : "#e53935",
-        }}
+        className={`mb-2 font-semibold ${
+          room.isPublic ? "text-green-500" : "text-red-500"
+        }`}
       >
-        <strong>Visibility:</strong> {room.isPublic ? "Public" : "Private"}
+        Visibility: {room.isPublic ? "Public" : "Private"}
       </p>
-
-      <p style={{ margin: "6px 0", fontSize: "13px", color: "#888" }}>
-        <strong>Created:</strong>{" "}
-        {new Date(room.createdAt).toLocaleString()}
+      <p className="text-sm text-gray-500">
+        <strong>Created:</strong> {createdAtText}
       </p>
     </div>
   );
