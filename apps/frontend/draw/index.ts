@@ -1,20 +1,9 @@
-"use client";
-
-import { useEffect, useRef } from "react";
-
-export default function Canvas() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const isDrawing = useRef(false);
-  const start = useRef({ x: 0, y: 0 });
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
+export default function Draw(canvas: HTMLCanvasElement,isDrawing: React.MutableRefObject<boolean>, start: React.MutableRefObject<{ x: number; y: number }>) {
     if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-
-    // Resize canvas and fill background
+// Resize canvas and fill background
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -65,12 +54,4 @@ export default function Canvas() {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, []);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="fixed top-0 left-0 w-screen h-screen bg-black"
-    />
-  );
 }
