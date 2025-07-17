@@ -8,6 +8,7 @@ import { getMessagesHandler } from "./handlers/getMessages.js";
 import { getRoomBySlugHandler } from "./handlers/getRoomBySlug.js";
 import { getRoomsByOwnerHandler } from "./handlers/getRoomsByOwner.js";
 import { FRONTEND_URL } from "@repo/backend-common-file/config"
+import {clearRoomShapesHandler} from "./handlers/clearRoomShapesHandler.js"
 
 const app = express();
 
@@ -34,6 +35,8 @@ app.get("/messages/:id", middleware, getMessagesHandler);
 app.get("/rooms/:slug", middleware,getRoomBySlugHandler);
 // Get rooms by owner ID
 app.get("/owners/:ownerId/rooms", middleware, getRoomsByOwnerHandler);
+// Delete the Shaps
+app.delete("/rooms/:id/shapes", middleware, clearRoomShapesHandler);
   
 
 

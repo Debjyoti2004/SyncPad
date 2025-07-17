@@ -5,13 +5,13 @@ import prismaClient from "@repo/db";
 
 const wss = new WebSocketServer({ port: 8080 });
 
-interface User {
+interface UserConn {
   ws: WebSocket;
   rooms: string[];
   userId: string;
 }
 
-const users: User[] = [];
+const users: UserConn[] = [];
 
 wss.on("connection", (ws, request) => {
   try {
@@ -32,14 +32,12 @@ wss.on("connection", (ws, request) => {
     const userId = decoded.userId;
 
     console.log(`[WS] New connection: userId=${userId}`);
-
     users.push({ userId, ws, rooms: [] });
 
-    ws.on("message", async (data) => {
-      let parsedData: any;
-
+    ws.on("message", async (raw) => {
+      let parsed: any;
       try {
-        parsedData = JSON.parse(data.toString());
+        parsed = JSON.parse(raw.toString());
       } catch {
         ws.send(JSON.stringify({ error: "Invalid JSON format" }));
         return;
@@ -51,68 +49,88 @@ wss.on("connection", (ws, request) => {
         return;
       }
 
-      const { type, room, message } = parsedData;
+      const { type, room } = parsed;
 
-      // Handle Join Room
+      // join
       if (type === "joinRoom") {
         console.log(`[WS] User ${user.userId} joining room: ${room}`);
-
         if (!room || typeof room !== "string") {
           ws.send(JSON.stringify({ error: "Invalid or missing room ID" }));
           return;
         }
-
         if (!user.rooms.includes(room)) {
           user.rooms.push(room);
         }
-
         ws.send(JSON.stringify({ type: "joinedRoom", room }));
         return;
       }
 
-      // Handle Leave Room
+      // leave 
       if (type === "leaveRoom") {
         user.rooms = user.rooms.filter((r) => r !== room);
         ws.send(JSON.stringify({ type: "leftRoom", room }));
         return;
       }
 
-      // Handle Shape Message
+      // deleteShape  
+      if (type === "deleteShape") {
+        const { shapeId } = parsed;
+        console.log(`[WS] Delete shape request room=${room} shapeId=${shapeId}`);
+
+        if (!room || typeof room !== "string" || !shapeId || typeof shapeId !== "string") {
+          ws.send(JSON.stringify({ error: "Invalid deleteShape payload" }));
+          return;
+        }
+
+        users.forEach((u) => {
+          if (u.rooms.includes(room)) {
+            u.ws.send(
+              JSON.stringify({
+                type: "deleteShape",
+                room,
+                shapeId,
+                sender: user.userId,
+              })
+            );
+          }
+        });
+        return;
+      }
+
+      // message (new shape)  
       if (type === "message") {
+        const { message } = parsed;
         console.log("[WS] Incoming shape message:", { room, message });
 
         if (!room || typeof room !== "string") {
           ws.send(JSON.stringify({ error: "Room ID is required and must be a string" }));
           return;
         }
-
         if (!message || typeof message !== "string") {
           ws.send(JSON.stringify({ error: "Message content is required and must be a string" }));
           return;
         }
 
         try {
-          // Check if Room exists in DB
+          // ensure room exists
           const existingRoom = await prismaClient.room.findUnique({ where: { id: room } });
-          console.log("[WS] Room check:", existingRoom);
-
           if (!existingRoom) {
             ws.send(JSON.stringify({ error: "Room not found" }));
             return;
           }
 
-          // Save shape as chat message
+          // persist shape JSON as chat row
           const chatEntry = await prismaClient.chat.create({
             data: {
-              content: message, // Shape JSON string
+              content: message,
               roomId: room,
               userId: user.userId,
             },
           });
 
-          console.log("[WS] Shape stored in DB:", chatEntry);
+          console.log("[WS] Shape stored in DB:", chatEntry.id);
 
-          // Broadcast to all users in the room
+          // broadcast new shape
           users.forEach((u) => {
             if (u.rooms.includes(room)) {
               u.ws.send(
@@ -125,24 +143,24 @@ wss.on("connection", (ws, request) => {
               );
             }
           });
-        } catch (err: any) {
+        } catch (err) {
           console.error("[WS] Error handling message:", err);
           ws.send(JSON.stringify({ error: "Failed to send message" }));
         }
-
         return;
       }
 
-      // ✅ Unknown Type
+      // unknown 
       ws.send(JSON.stringify({ error: "Unknown message type" }));
     });
 
     ws.on("close", () => {
       console.log(`[WS] Connection closed: userId=${userId}`);
-      const index = users.findIndex((u) => u.ws === ws);
-      if (index !== -1) users.splice(index, 1);
+      const idx = users.findIndex((u) => u.ws === ws);
+      if (idx !== -1) users.splice(idx, 1);
     });
 
+    // initial greeting (string, not JSON) — clients must ignore.
     ws.send("Connected to WebSocket server");
   } catch (err) {
     console.error("[WS] Connection error:", err);
