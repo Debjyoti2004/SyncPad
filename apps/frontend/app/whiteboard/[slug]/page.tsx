@@ -6,7 +6,6 @@ import type { Shape } from "../../../draw";
 import { connectWebSocket, sendMessage } from "../../../lib/socket";
 import { BACKEND_URL } from "../../config";
 
-
 export default function WhiteboardPage({
   params,
 }: {
@@ -17,9 +16,15 @@ export default function WhiteboardPage({
   const [roomId, setRoomId] = useState<string | null>(null);
   const [shapes, setShapes] = useState<Shape[]>([]);
   const [selectedShape, setSelectedShape] = useState<Shape["type"]>("rect");
+
+  // websocket
   const socketRef = useRef<WebSocket | null>(null);
 
-  // resolve roomId from slug 
+  // undo spam guard
+  const undoInFlightRef = useRef(false);
+  const [undoInFlight, setUndoInFlight] = useState(false);
+
+  // Fetch Room ID  
   useEffect(() => {
     const fetchRoomId = async () => {
       const token =
@@ -30,21 +35,18 @@ export default function WhiteboardPage({
         const res = await fetch(`${BACKEND_URL}/rooms/${slug}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-
         if (!res.ok) throw new Error("Failed to fetch roomId");
-
         const data = await res.json();
-        console.log("[WB] Room details:", data.room);
         setRoomId(data.room.id);
+        console.log("[WB] Room details:", data.room);
       } catch (err) {
         console.error("[WB] Error fetching roomId:", err);
       }
     };
-
     fetchRoomId();
   }, [slug]);
 
-  // load historical shapes
+  // Load Historical Shapes  
   useEffect(() => {
     if (!roomId) return;
 
@@ -57,12 +59,9 @@ export default function WhiteboardPage({
         const res = await fetch(`${BACKEND_URL}/messages/${roomId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-
         if (!res.ok) throw new Error("Failed to load shapes");
 
         const data = await res.json();
-        console.log("[WB] Old shapes from DB:", data);
-
         const loaded: Shape[] = [];
         for (const msg of data.messages || []) {
           try {
@@ -72,9 +71,7 @@ export default function WhiteboardPage({
             console.warn("[WB] Skipped invalid message:", msg.content);
           }
         }
-
-        // DB query is descending; reverse to draw oldest first
-        setShapes(loaded.reverse());
+        setShapes(loaded.reverse()); // draw oldest first
       } catch (err) {
         console.error("[WB] Error loading shapes:", err);
       }
@@ -83,7 +80,7 @@ export default function WhiteboardPage({
     fetchShapes();
   }, [roomId]);
 
-  // websocket live shapes 
+  // WebSocket for Live Updates  
   useEffect(() => {
     if (!roomId) return;
     const socket = connectWebSocket();
@@ -99,7 +96,9 @@ export default function WhiteboardPage({
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+
         if (data.type === "message") {
+          // New shape broadcast
           try {
             const parsed = JSON.parse(data.message);
             if (parsed?.type) {
@@ -109,8 +108,13 @@ export default function WhiteboardPage({
             console.warn("[WB] WS message not JSON shape:", data.message);
           }
         }
+
+        if (data.type === "deleteShape") {
+          // Another client deleted last shape
+          setShapes((prev) => (prev.length ? prev.slice(0, -1) : prev));
+        }
       } catch {
-        // ignore non-JSON server greeting
+        // ignore non-JSON greetings
       }
     };
 
@@ -120,7 +124,7 @@ export default function WhiteboardPage({
     return () => socket.close();
   }, [roomId]);
 
-  // send shape when user draws
+  //  Handle Shape Draw  
   const handleShapeDraw = useCallback(
     (shape: Shape) => {
       setShapes((prev) => [...prev, shape]);
@@ -138,44 +142,60 @@ export default function WhiteboardPage({
     [roomId]
   );
 
-  // undo last shape (DELETE)
-  const handleUndoLast = async () => {
+  // Undo (Guarded) 
+  const handleUndoClick = async () => {
     if (!roomId) return;
+    if (!shapes.length) return;
+    if (undoInFlightRef.current) return; // ignore while previous undo running
+
+    undoInFlightRef.current = true;
+    setUndoInFlight(true);
+
+    // Optimistic local removal
+    setShapes((prev) => prev.slice(0, -1));
+
+    // Broadcast to other clients immediately (they also pop last)
+    if (socketRef.current) {
+      sendMessage({
+        type: "deleteShape",
+        room: roomId,
+      });
+    }
+
+    // Sync to backend
     const token =
       typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    if (!token) return;
+    if (token) {
+      try {
+        const res = await fetch(`${BACKEND_URL}/rooms/${roomId}/shapes`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-    try {
-      const res = await fetch(`${BACKEND_URL}/rooms/${roomId}/shapes`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+        const raw = await res.text();
+        console.log("[WB] Undo response:", res.status, raw);
 
-      const raw = await res.text();
-      console.log("[WB] Undo response:", res.status, raw);
+        if (!res.ok) {
+          let msg = `Undo failed (status ${res.status})`;
+          try {
+            const parsed = JSON.parse(raw);
+            if (parsed?.message) msg = parsed.message;
+          } catch {}
+          alert(msg);
 
-      if (!res.ok) {
-        // Show server message
-        let msg = `Undo failed (status ${res.status})`;
-        try {
-          const parsed = JSON.parse(raw);
-          if (parsed?.message) msg = parsed.message;
-        } catch {}
-        throw new Error(msg);
+        }
+      } catch (err) {
+        console.error("[WB] Undo error:", err);
+        alert("Undo failed. Please refresh and try again.");
       }
-
-      const result = JSON.parse(raw);
-      console.log("[WB] Deleted last shape:", result);
-
-      // remove last shape locally
-      setShapes((prev) => prev.slice(0, -1));
-    } catch (err) {
-      console.error("[WB] Undo last error:", err);
-      alert((err as Error).message);
     }
+
+    // allow the next undo (immediately)
+    undoInFlightRef.current = false;
+    setUndoInFlight(false);
   };
 
-  // toolbar 
+  // Toolbar  
   const toolButtons = [
     "rect",
     "line",
@@ -210,17 +230,25 @@ export default function WhiteboardPage({
             Room: <span className="text-blue-400 font-bold">{slug}</span>
           </div>
           <button
-            onClick={handleUndoLast}
-            disabled={!roomId}
-            className="px-3 py-1 text-sm rounded bg-red-600 hover:bg-red-500 disabled:bg-gray-600"
-            title="Delete the most recent shape in this room"
+            onClick={handleUndoClick}
+            disabled={!roomId || !shapes.length || undoInFlight}
+            className={`px-3 py-1 text-sm rounded ${
+              !roomId || !shapes.length || undoInFlight
+                ? "bg-gray-600 cursor-not-allowed"
+                : "bg-red-600 hover:bg-red-500 cursor-pointer"
+            }`}
+            title="Undo the most recent shape. If others don't see it yet, try refreshing."
           >
             Undo Last
           </button>
         </div>
       </div>
 
-      <Canvas shape={selectedShape} shapes={shapes} onShapeDraw={handleShapeDraw} />
+      <Canvas
+        shape={selectedShape}
+        shapes={shapes}
+        onShapeDraw={handleShapeDraw}
+      />
     </div>
   );
 }
