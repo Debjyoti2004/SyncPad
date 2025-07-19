@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BACKEND_URL } from "../../../config";
+import { LogIn, Loader2, AlertCircle } from "lucide-react";
 
-export default function JoinRoomPage() {
+export default function JoinRoomSection() {
   const [roomSlug, setRoomSlug] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -15,7 +16,7 @@ export default function JoinRoomPage() {
     setLoading(true);
 
     if (!roomSlug.trim()) {
-      setError("Room slug is required.");
+      setError("Room code is required.");
       setLoading(false);
       return;
     }
@@ -39,13 +40,11 @@ export default function JoinRoomPage() {
       const data = await res.json();
       const { id: roomId, slug } = data.room;
 
-      // Save both ID and Slug in localStorage
       localStorage.setItem("latestRoomId", roomId);
       localStorage.setItem("latestSlug", slug);
 
       console.log("[JOIN ROOM] Saved:", { roomId, slug });
 
-      // Navigate using slug for user-friendly URL
       router.push(`/whiteboard/${slug}`);
     } catch (err: any) {
       setError(err.message || "Failed to join room.");
@@ -55,42 +54,54 @@ export default function JoinRoomPage() {
   };
 
   return (
-    <div style={{ marginTop: 30 }}>
-      <h2 style={{ marginBottom: 10 }}>Join Room by Slug</h2>
+    <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-8 shadow-2xl">
+      <div className="flex items-center gap-3 mb-8">
+        <div className="p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl">
+          <LogIn className="w-6 h-6 text-white" />
+        </div>
+        <h2 className="text-2xl font-bold text-white">Join Existing Room</h2>
+      </div>
 
-      <input
-        type="text"
-        placeholder="Enter Room Slug"
-        value={roomSlug}
-        onChange={(e) => setRoomSlug(e.target.value)}
-        style={{
-          width: "100%",
-          padding: 10,
-          marginBottom: 10,
-          borderRadius: 6,
-          border: "1px solid #ccc",
-          background: "#222",
-          color: "#fff",
-        }}
-      />
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium text-slate-300 mb-2">
+            Room Code
+          </label>
+          <input
+            type="text"
+            placeholder="Enter room code or slug"
+            value={roomSlug}
+            onChange={(e) => setRoomSlug(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleJoin()}
+            className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+          />
+        </div>
 
-      {error && <p style={{ color: "red", marginBottom: 10 }}>{error}</p>}
+        {error && (
+          <div className="flex items-center gap-2 p-4 bg-red-900/20 border border-red-500/30 rounded-xl text-red-400">
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            <span className="text-sm">{error}</span>
+          </div>
+        )}
 
-      <button
-        onClick={handleJoin}
-        disabled={loading}
-        style={{
-          width: "100%",
-          padding: 12,
-          background: "#0070f3",
-          color: "white",
-          border: "none",
-          borderRadius: 6,
-          cursor: loading ? "not-allowed" : "pointer",
-        }}
-      >
-        {loading ? "Joining..." : "Join Room"}
-      </button>
+        <button
+          onClick={handleJoin}
+          disabled={loading || !roomSlug.trim()}
+          className="w-full py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-xl hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-slate-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Joining...
+            </>
+          ) : (
+            <>
+              <LogIn className="w-5 h-5" />
+              Join Room
+            </>
+          )}
+        </button>
+      </div>
     </div>
   );
 }

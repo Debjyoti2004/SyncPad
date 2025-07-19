@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
+import { Calendar, Globe, Lock, ExternalLink, User } from "lucide-react";
 
 type Room = {
   id: string;
@@ -17,7 +18,6 @@ export default function RoomCard({ room }: { room: Room }) {
   const [createdAtText, setCreatedAtText] = useState("");
 
   useEffect(() => {
-    // Run only on client to avoid SSR mismatch
     setCreatedAtText(new Date(room.createdAt).toLocaleString());
   }, [room.createdAt]);
 
@@ -33,28 +33,44 @@ export default function RoomCard({ room }: { room: Room }) {
   return (
     <div
       onClick={handleClick}
-      className="bg-gray-900 rounded-xl shadow-md p-6 min-w-[280px] max-w-[360px] flex-1 cursor-pointer hover:scale-105 transition-transform text-white"
+      className="group bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6 cursor-pointer hover:bg-slate-800/70 hover:border-slate-600/50 hover:scale-[1.02] transition-all duration-300 shadow-lg hover:shadow-xl"
     >
-      <h2 className="text-xl font-bold mb-3">
-        Room Name: <span className="font-normal">{room.name}</span>
-      </h2>
-      <p className="text-gray-300 mb-2">
-        <strong>Room Slug:</strong> {room.slug}
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex-1">
+          <h3 className="text-xl font-bold text-white mb-2 group-hover:text-blue-400 transition-colors">
+            {room.name}
+          </h3>
+          <div className="flex items-center gap-2 text-sm text-slate-400 mb-2">
+            <User className="w-4 h-4" />
+            <span className="font-mono bg-slate-700/50 px-2 py-1 rounded text-xs">
+              {room.slug}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {room.isPublic ? (
+            <div className="flex items-center gap-1 px-2 py-1 bg-green-900/30 border border-green-500/30 rounded-lg">
+              <Globe className="w-3 h-3 text-green-400" />
+              <span className="text-xs text-green-400 font-medium">Public</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1 px-2 py-1 bg-orange-900/30 border border-orange-500/30 rounded-lg">
+              <Lock className="w-3 h-3 text-orange-400" />
+              <span className="text-xs text-orange-400 font-medium">Private</span>
+            </div>
+          )}
+          <ExternalLink className="w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-colors" />
+        </div>
+      </div>
+
+      <p className="text-slate-300 text-sm mb-4 line-clamp-2">
+        {room.description || "No description provided"}
       </p>
-      <p className="text-gray-300 mb-2">
-        <strong>Description:</strong>{" "}
-        {room.description ? room.description : "No description"}
-      </p>
-      <p
-        className={`mb-2 font-semibold ${
-          room.isPublic ? "text-green-500" : "text-red-500"
-        }`}
-      >
-        Visibility: {room.isPublic ? "Public" : "Private"}
-      </p>
-      <p className="text-sm text-gray-500">
-        <strong>Created:</strong> {createdAtText}
-      </p>
+
+      <div className="flex items-center gap-2 text-xs text-slate-500">
+        <Calendar className="w-3 h-3" />
+        <span>Created {createdAtText}</span>
+      </div>
     </div>
   );
 }

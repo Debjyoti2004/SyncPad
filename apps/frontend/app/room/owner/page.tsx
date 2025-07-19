@@ -1,9 +1,9 @@
 "use client";
-// It fetches the rooms from the backend and displays them in a grid format
 
 import { useEffect, useState } from "react";
 import { getWithAuthJSON } from "../../../lib/api";
 import { BACKEND_URL } from "../../config";
+import { Folder, Loader2, AlertCircle } from "lucide-react";
 import RoomCard from "../../components/RoomCard";
 
 interface Room {
@@ -15,7 +15,7 @@ interface Room {
   createdAt: string;
 }
 
-export default function OwnerRoomsPage() {
+export default function OwnerRoomsSection() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -47,39 +47,43 @@ export default function OwnerRoomsPage() {
     fetchRooms();
   }, []);
 
-  return (
-    <div
-      style={{
-        padding: "40px 20px",
-        maxWidth: "1200px",
-        margin: "auto",
-        color: "#f1f1f1",
-        fontFamily: "system-ui, sans-serif",
-      }}
-    >
-      <h2 style={{ fontSize: 28, fontWeight: "bold", marginBottom: 30 }}>
-        My Rooms
-      </h2>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        <span className="ml-3 text-slate-400">Loading your rooms...</span>
+      </div>
+    );
+  }
 
-      {loading ? (
-        <p>Loading rooms...</p>
-      ) : error ? (
-        <p style={{ color: "red" }}>{error}</p>
-      ) : rooms.length === 0 ? (
-        <p>No rooms found.</p>
-      ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-            gap: 24,
-          }}
-        >
-          {rooms.map((room) => (
-            <RoomCard key={room.id} room={room} />
-          ))}
+  if (error) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="flex items-center gap-2 p-4 bg-red-900/20 border border-red-500/30 rounded-xl text-red-400">
+          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          <span>{error}</span>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  if (rooms.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="p-4 bg-slate-700/30 rounded-xl mb-4">
+          <Folder className="w-12 h-12 text-slate-400" />
+        </div>
+        <h3 className="text-xl font-medium text-slate-300 mb-2">No rooms yet</h3>
+        <p className="text-slate-500">Create your first room to get started!</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {rooms.map((room) => (
+        <RoomCard key={room.id} room={room} />
+      ))}
     </div>
   );
 }

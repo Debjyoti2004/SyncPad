@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { CreateRoomSchema } from "@repo/common/types";
 import { postWithAuthJSON } from "../../../../lib/api";
 import { BACKEND_URL } from "../../../config";
-import OwnerRooms from "../../owner/page";
-import JoinRoomPage from "../join/page";
+import { Plus, Globe, Lock, Loader2, AlertCircle } from "lucide-react";
+import JoinRoomSection from "../join/page";
+import OwnerRoomsSection from "../../owner/page";
 
 export default function CreateRoomPage() {
   const router = useRouter();
@@ -61,10 +62,7 @@ export default function CreateRoomPage() {
         token
       );
 
-      // Save slug to localStorage for later use
       localStorage.setItem("latestSlug", res.room.slug);
-
-      // Redirect to chat room
       router.push(`/whiteboard/${res.room.slug}`);   
     } catch (err: any) {
       setError(err.message || "Room creation failed.");
@@ -74,72 +72,124 @@ export default function CreateRoomPage() {
   };
 
   return (
-    <div style={{ padding: 30, maxWidth: 600, margin: "auto" }}>
-      <h2 style={{ marginBottom: 20 }}>Create Room</h2>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      <div className="container mx-auto px-6 py-12 max-w-7xl">
+        {/* Header */}
+        <div className="text-center mb-16">
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent mb-4">
+            Create Your Workspace
+          </h1>
+          <p className="text-xl text-slate-400 max-w-2xl mx-auto">
+            Build collaborative spaces where ideas come to life through interactive whiteboards
+          </p>
+        </div>
 
-      <input
-        type="text"
-        name="name"
-        placeholder="Room Name"
-        value={formData.name}
-        onChange={handleChange}
-        style={{
-          width: "100%",
-          marginBottom: 10,
-          padding: 10,
-          border: "1px solid #ccc",
-          borderRadius: 6,
-        }}
-      />
+        <div className="grid lg:grid-cols-2 gap-12 mb-16">
+          {/* Create Room Form */}
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-8 shadow-2xl">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl">
+                <Plus className="w-6 h-6 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-white">Create New Room</h2>
+            </div>
 
-      <textarea
-        name="description"
-        placeholder="Description (optional)"
-        value={formData.description}
-        onChange={handleChange}
-        style={{
-          width: "100%",
-          marginBottom: 10,
-          padding: 10,
-          border: "1px solid #ccc",
-          borderRadius: 6,
-        }}
-      />
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Room Name
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="Enter a memorable room name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+              </div>
 
-      <label style={{ display: "block", marginBottom: 10 }}>
-        <input
-          type="checkbox"
-          name="isPublic"
-          checked={formData.isPublic}
-          onChange={handleChange}
-          style={{ marginRight: 8 }}
-        />
-        Public Room
-      </label>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Description <span className="text-slate-500">(optional)</span>
+                </label>
+                <textarea
+                  name="description"
+                  placeholder="Describe what this room will be used for..."
+                  value={formData.description}
+                  onChange={handleChange}
+                  rows={3}
+                  className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                />
+              </div>
 
-      {error && <div style={{ color: "red", marginBottom: 10 }}>{error}</div>}
+              <div className="flex items-center gap-4 p-4 bg-slate-700/30 rounded-xl border border-slate-600/50">
+                <input
+                  type="checkbox"
+                  name="isPublic"
+                  id="isPublic"
+                  checked={formData.isPublic}
+                  onChange={handleChange}
+                  className="w-5 h-5 text-blue-500 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 focus:ring-2"
+                />
+                <label htmlFor="isPublic" className="flex items-center gap-2 cursor-pointer">
+                  {formData.isPublic ? (
+                    <Globe className="w-5 h-5 text-green-400" />
+                  ) : (
+                    <Lock className="w-5 h-5 text-orange-400" />
+                  )}
+                  <span className="text-slate-200 font-medium">
+                    {formData.isPublic ? "Public Room" : "Private Room"}
+                  </span>
+                </label>
+              </div>
 
-      <button
-        onClick={handleSubmit}
-        disabled={loading}
-        style={{
-          width: "100%",
-          padding: 12,
-          background: "#0070f3",
-          color: "white",
-          border: "none",
-          borderRadius: 6,
-          cursor: loading ? "not-allowed" : "pointer",
-        }}
-      >
-        {loading ? "Creating..." : "Create Room"}
-      </button>
+              {error && (
+                <div className="flex items-center gap-2 p-4 bg-red-900/20 border border-red-500/30 rounded-xl text-red-400">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <span className="text-sm">{error}</span>
+                </div>
+              )}
 
-      <JoinRoomPage />
+              <button
+                onClick={handleSubmit}
+                disabled={loading || !formData.name.trim()}
+                className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Creating Room...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-5 h-5" />
+                    Create Room
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
 
-      <hr style={{ margin: "40px 0" }} />
+          {/* Join Room Section */}
+          <JoinRoomSection />
+        </div>
 
-      <OwnerRooms />
+        {/* Divider */}
+        <div className="relative mb-16">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-700"></div>
+          </div>
+          <div className="relative flex justify-center">
+            <span className="px-6 py-2 bg-slate-800 text-slate-400 rounded-full border border-slate-700">
+              Your Rooms
+            </span>
+          </div>
+        </div>
+
+        {/* Owner Rooms Section */}
+        <OwnerRoomsSection />
+      </div>
     </div>
   );
 }
