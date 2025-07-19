@@ -1,94 +1,13 @@
+// main Draw function
+
 "use client";
 
-export type Shape =
-  | { type: "rect"; x: number; y: number; width: number; height: number }
-  | { type: "line"; x1: number; y1: number; x2: number; y2: number }
-  | {
-      type: "ellipse";
-      centerX: number;
-      centerY: number;
-      radiusX: number;
-      radiusY: number;
-    }
-  | { type: "triangle"; x1: number; y1: number; x2: number; y2: number }
-  | { type: "arrow"; fromX: number; fromY: number; toX: number; toY: number }
-  | {
-      type: "star";
-      centerX: number;
-      centerY: number;
-      outerRadius: number;
-      points: number;
-    }
-  | { type: "freehand"; points: { x: number; y: number }[] };
+import { Shape } from "./shapes";
+import { renderShapes } from "./render";
+import { drawArrow, drawStar } from "./helpers";
 
 let freehandPath: { x: number; y: number }[] | null = null;
 
-// helpers
-function drawArrow(
-  ctx: CanvasRenderingContext2D,
-  fromX: number,
-  fromY: number,
-  toX: number,
-  toY: number
-) {
-  const headLength = 10;
-  const dx = toX - fromX;
-  const dy = toY - fromY;
-  const angle = Math.atan2(dy, dx);
-
-  ctx.beginPath();
-  ctx.moveTo(fromX, fromY);
-  ctx.lineTo(toX, toY);
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(toX, toY);
-  ctx.lineTo(
-    toX - headLength * Math.cos(angle - Math.PI / 6),
-    toY - headLength * Math.sin(angle - Math.PI / 6)
-  );
-  ctx.moveTo(toX, toY);
-  ctx.lineTo(
-    toX - headLength * Math.cos(angle + Math.PI / 6),
-    toY - headLength * Math.sin(angle + Math.PI / 6)
-  );
-  ctx.stroke();
-}
-
-function drawStar(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  spikes: number,
-  outerRadius: number
-) {
-  const innerRadius = outerRadius / 2;
-  const step = Math.PI / spikes;
-  let rot = (Math.PI / 2) * 3;
-  let x = cx;
-  let y = cy;
-
-  ctx.beginPath();
-  ctx.moveTo(cx, cy - outerRadius);
-
-  for (let i = 0; i < spikes; i++) {
-    x = cx + Math.cos(rot) * outerRadius;
-    y = cy + Math.sin(rot) * outerRadius;
-    ctx.lineTo(x, y);
-    rot += step;
-
-    x = cx + Math.cos(rot) * innerRadius;
-    y = cy + Math.sin(rot) * innerRadius;
-    ctx.lineTo(x, y);
-    rot += step;
-  }
-
-  ctx.lineTo(cx, cy - outerRadius);
-  ctx.closePath();
-  ctx.stroke();
-}
-
-// main 
 export default function Draw(
   canvas: HTMLCanvasElement,
   isDrawing: React.MutableRefObject<boolean>,
@@ -106,7 +25,7 @@ export default function Draw(
   const resizeCanvas = () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    renderShapes(existingShapes);
+    renderShapes(ctx, canvas, existingShapes);
   };
   resizeCanvas();
   window.addEventListener("resize", resizeCanvas);
@@ -126,7 +45,7 @@ export default function Draw(
     const width = endX - start.current.x;
     const height = endY - start.current.y;
 
-    renderShapes(existingShapes);
+    renderShapes(ctx, canvas, existingShapes);
 
     ctx.strokeStyle = "white";
     ctx.lineWidth = 2;
@@ -180,12 +99,12 @@ export default function Draw(
       case "freehand":
         if (freehandPath) {
           freehandPath.push({ x: endX, y: endY });
-          ctx.beginPath();
-          ctx.moveTo(freehandPath[0].x, freehandPath[0].y);
-          for (let i = 1; i < freehandPath.length; i++) {
-            ctx.lineTo(freehandPath[i].x, freehandPath[i].y);
-          }
-          ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(freehandPath[0].x, freehandPath[0].y);
+            for (let i = 1; i < freehandPath.length; i++) {
+              ctx.lineTo(freehandPath[i].x, freehandPath[i].y);
+            }
+            ctx.stroke();
         }
         break;
     }
@@ -267,74 +186,9 @@ export default function Draw(
       onShapeDraw(newShape);
     }
 
-    renderShapes(existingShapes);
+    renderShapes(ctx, canvas, existingShapes);
     isDrawing.current = false;
   };
-
-  function renderShapes(list: Shape[]) {
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = "black";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    ctx.strokeStyle = "white";
-    ctx.lineWidth = 2;
-
-    for (const s of list) {
-      switch (s.type) {
-        case "rect":
-          ctx.strokeRect(s.x, s.y, s.width, s.height);
-          break;
-        case "line":
-          ctx.beginPath();
-          ctx.moveTo(s.x1, s.y1);
-          ctx.lineTo(s.x2, s.y2);
-          ctx.stroke();
-          break;
-        case "ellipse":
-          ctx.beginPath();
-          ctx.ellipse(
-            s.centerX,
-            s.centerY,
-            s.radiusX,
-            s.radiusY,
-            0,
-            0,
-            Math.PI * 2
-          );
-          ctx.stroke();
-          break;
-        case "triangle": {
-          const x3 = s.x1 - (s.x2 - s.x1);
-          const y3 = s.y2;
-          ctx.beginPath();
-          ctx.moveTo(s.x1, s.y1);
-          ctx.lineTo(s.x2, s.y2);
-          ctx.lineTo(x3, y3);
-          ctx.closePath();
-          ctx.stroke();
-          break;
-        }
-        case "arrow":
-          drawArrow(ctx, s.fromX, s.fromY, s.toX, s.toY);
-          break;
-        case "star":
-          drawStar(ctx, s.centerX, s.centerY, s.points, s.outerRadius);
-          break;
-        case "freehand":
-          if (s.points?.length) {
-            ctx.beginPath();
-            ctx.moveTo(s.points[0].x, s.points[0].y);
-            for (let i = 1; i < s.points.length; i++) {
-              ctx.lineTo(s.points[i].x, s.points[i].y);
-            }
-            ctx.stroke();
-          }
-          break;
-      }
-    }
-  }
 
   canvas.addEventListener("mousedown", handleMouseDown);
   window.addEventListener("mousemove", handleMouseMove);
