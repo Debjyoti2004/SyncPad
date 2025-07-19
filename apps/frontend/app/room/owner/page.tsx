@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { getWithAuthJSON } from "../../../lib/api";
 import { BACKEND_URL } from "../../config";
 import { Folder, Loader2, AlertCircle } from "lucide-react";
-import RoomCard from "../../components/RoomCard";
+import RoomCard from "../../components/ui/RoomCard";
+import { useRouter } from "next/navigation";
 
 interface Room {
   id: string;
@@ -19,6 +20,7 @@ export default function OwnerRoomsSection() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const route = useRouter()
 
   useEffect(() => {
     const fetchRooms = async () => {
@@ -27,6 +29,7 @@ export default function OwnerRoomsSection() {
 
       if (!token || !ownerId) {
         setError("Missing auth token or owner ID");
+        route.push("/auth/signup")
         setLoading(false);
         return;
       }

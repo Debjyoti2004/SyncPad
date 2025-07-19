@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BACKEND_URL } from "../../../config";
 import { LogIn, Loader2, AlertCircle } from "lucide-react";
+import Button from "../../../components/ui/button";
 
 export default function JoinRoomSection() {
   const [roomSlug, setRoomSlug] = useState("");
@@ -72,7 +73,7 @@ export default function JoinRoomSection() {
             placeholder="Enter room code or slug"
             value={roomSlug}
             onChange={(e) => setRoomSlug(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleJoin()}
+            onKeyPress={(e) => e.key === "Enter" && handleJoin()}
             className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
           />
         </div>
@@ -84,23 +85,17 @@ export default function JoinRoomSection() {
           </div>
         )}
 
-        <button
+        <Button
+          label={loading ? "Joining..." : "Join Room"}
           onClick={handleJoin}
           disabled={loading || !roomSlug.trim()}
-          className="w-full py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-xl hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-slate-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              Joining...
-            </>
-          ) : (
-            <>
-              <LogIn className="w-5 h-5" />
-              Join Room
-            </>
-          )}
-        </button>
+          loading={loading}
+          loadingIcon={Loader2}
+          icon={LogIn}
+          variant="primary"
+          size="md"
+          className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-xl hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-slate-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        />
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import { BACKEND_URL } from "../../../config";
 import { Plus, Globe, Lock, Loader2, AlertCircle } from "lucide-react";
 import JoinRoomSection from "../join/page";
 import OwnerRoomsSection from "../../owner/page";
+import Button from "../../../components/ui/button";
 
 export default function CreateRoomPage() {
   const router = useRouter();
@@ -63,7 +64,7 @@ export default function CreateRoomPage() {
       );
 
       localStorage.setItem("latestSlug", res.room.slug);
-      router.push(`/whiteboard/${res.room.slug}`);   
+      router.push(`/whiteboard/${res.room.slug}`);
     } catch (err: any) {
       setError(err.message || "Room creation failed.");
     } finally {
@@ -72,7 +73,11 @@ export default function CreateRoomPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-6 relative overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-700/20 via-transparent to-transparent"></div>
+      <div className="absolute inset-0 bg-[linear-gradient(45deg,_transparent_25%,_rgba(255,255,255,0.01)_50%,_transparent_75%)] bg-[length:60px_60px]"></div>
+      
       <div className="container mx-auto px-6 py-12 max-w-7xl">
         {/* Header */}
         <div className="text-center mb-16">
@@ -85,7 +90,6 @@ export default function CreateRoomPage() {
         </div>
 
         <div className="grid lg:grid-cols-2 gap-12 mb-16">
-          {/* Create Room Form */}
           <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-8 shadow-2xl">
             <div className="flex items-center gap-3 mb-8">
               <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl">
@@ -151,31 +155,22 @@ export default function CreateRoomPage() {
                 </div>
               )}
 
-              <button
+              <Button
                 onClick={handleSubmit}
                 disabled={loading || !formData.name.trim()}
+                loading={loading}
+                icon={Plus}
+                loadingIcon={Loader2}
+                loadingText="Creating Room..."
+                label="Create Room"
                 className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Creating Room...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-5 h-5" />
-                    Create Room
-                  </>
-                )}
-              </button>
+              />
             </div>
           </div>
 
-          {/* Join Room Section */}
           <JoinRoomSection />
         </div>
 
-        {/* Divider */}
         <div className="relative mb-16">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-slate-700"></div>
@@ -186,8 +181,6 @@ export default function CreateRoomPage() {
             </span>
           </div>
         </div>
-
-        {/* Owner Rooms Section */}
         <OwnerRoomsSection />
       </div>
     </div>
