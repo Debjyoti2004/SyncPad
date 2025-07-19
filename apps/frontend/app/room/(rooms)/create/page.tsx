@@ -5,10 +5,17 @@ import { useRouter } from "next/navigation";
 import { CreateRoomSchema } from "@repo/common/types";
 import { postWithAuthJSON } from "../../../../lib/api";
 import { BACKEND_URL } from "../../../config";
-import { Plus, Globe, Lock, Loader2, AlertCircle } from "lucide-react";
+import {
+  Plus,
+  Globe,
+  Lock,
+  Loader2,
+  Sparkles,
+} from "lucide-react";
 import JoinRoomSection from "../join/page";
 import OwnerRoomsSection from "../../owner/page";
 import Button from "../../../components/ui/button";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function CreateRoomPage() {
   const router = useRouter();
@@ -19,7 +26,6 @@ export default function CreateRoomPage() {
     isPublic: true,
   });
 
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleChange = (
@@ -36,14 +42,13 @@ export default function CreateRoomPage() {
   };
 
   const handleSubmit = async () => {
-    setError("");
     setLoading(true);
 
     const parsed = CreateRoomSchema.safeParse(formData);
     if (!parsed.success) {
-      setError(
+      toast.error(
         "Validation Error: " +
-          Object.values(parsed.error.flatten().fieldErrors).flat().join(", ")
+        Object.values(parsed.error.flatten().fieldErrors).flat().join(", ")
       );
       setLoading(false);
       return;
@@ -51,7 +56,7 @@ export default function CreateRoomPage() {
 
     const token = localStorage.getItem("token");
     if (!token) {
-      setError("Authentication token not found. Please sign in.");
+      toast.error("Authentication token not found. Please sign in.");
       setLoading(false);
       return;
     }
@@ -64,107 +69,128 @@ export default function CreateRoomPage() {
       );
 
       localStorage.setItem("latestSlug", res.room.slug);
+      toast.success("Room created successfully!");
       router.push(`/whiteboard/${res.room.slug}`);
     } catch (err: any) {
-      setError(err.message || "Room creation failed.");
+      toast.error(err.message || "Room creation failed.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-700/20 via-transparent to-transparent"></div>
-      <div className="absolute inset-0 bg-[linear-gradient(45deg,_transparent_25%,_rgba(255,255,255,0.01)_50%,_transparent_75%)] bg-[length:60px_60px]"></div>
-      
-      <div className="container mx-auto px-6 py-12 max-w-7xl">
-        {/* Header */}
+    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-slate-950 to-zinc-950 flex items-center justify-center p-4 relative overflow-hidden">
+      <Toaster position="top-right" />
+
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_1200px_800px_at_50%_-20%,_rgba(59,130,246,0.08),_transparent_50%)]"></div>
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_800px_600px_at_80%_100%,_rgba(147,51,234,0.06),_transparent_50%)]"></div>
+      <div className="absolute inset-0 bg-[linear-gradient(45deg,_transparent_35%,_rgba(255,255,255,0.005)_50%,_transparent_65%)] bg-[length:40px_40px]"></div>
+
+      <div className="absolute top-20 left-20 w-32 h-32 bg-blue-600/5 rounded-full blur-3xl animate-pulse"></div>
+      <div className="absolute bottom-20 right-20 w-40 h-40 bg-purple-600/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
+
+      <div className="container mx-auto px-4 py-8 max-w-7xl relative z-10">
         <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent mb-4">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-full border border-blue-500/20 mb-6">
+            <Sparkles className="w-4 h-4 text-blue-400" />
+            <span className="text-sm font-medium text-blue-300">Premium Workspace</span>
+          </div>
+          <h1 className="text-6xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-200 bg-clip-text text-transparent mb-6 leading-tight">
             Create Your Workspace
           </h1>
-          <p className="text-xl text-slate-400 max-w-2xl mx-auto">
+          <p className="text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed">
             Build collaborative spaces where ideas come to life through interactive whiteboards
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-12 mb-16">
-          <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-8 shadow-2xl">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl">
-                <Plus className="w-6 h-6 text-white" />
-              </div>
-              <h2 className="text-2xl font-bold text-white">Create New Room</h2>
-            </div>
-
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Room Name
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  placeholder="Enter a memorable room name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Description <span className="text-slate-500">(optional)</span>
-                </label>
-                <textarea
-                  name="description"
-                  placeholder="Describe what this room will be used for..."
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows={3}
-                  className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
-                />
-              </div>
-
-              <div className="flex items-center gap-4 p-4 bg-slate-700/30 rounded-xl border border-slate-600/50">
-                <input
-                  type="checkbox"
-                  name="isPublic"
-                  id="isPublic"
-                  checked={formData.isPublic}
-                  onChange={handleChange}
-                  className="w-5 h-5 text-blue-500 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 focus:ring-2"
-                />
-                <label htmlFor="isPublic" className="flex items-center gap-2 cursor-pointer">
-                  {formData.isPublic ? (
-                    <Globe className="w-5 h-5 text-green-400" />
-                  ) : (
-                    <Lock className="w-5 h-5 text-orange-400" />
-                  )}
-                  <span className="text-slate-200 font-medium">
-                    {formData.isPublic ? "Public Room" : "Private Room"}
-                  </span>
-                </label>
-              </div>
-
-              {error && (
-                <div className="flex items-center gap-2 p-4 bg-red-900/20 border border-red-500/30 rounded-xl text-red-400">
-                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                  <span className="text-sm">{error}</span>
+        <div className="grid lg:grid-cols-2 gap-8 mb-16">
+          <div className="group relative">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl blur opacity-20 transition-opacity duration-300"></div>
+            <div className="relative bg-zinc-900/90 backdrop-blur-xl rounded-3xl border border-zinc-700/50 p-8 shadow-2xl">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg">
+                  <Plus className="w-7 h-7 text-white" />
                 </div>
-              )}
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Create New Room</h2>
+                  <p className="text-slate-400 text-sm">Start a new collaborative session</p>
+                </div>
+              </div>
 
-              <Button
-                onClick={handleSubmit}
-                disabled={loading || !formData.name.trim()}
-                loading={loading}
-                icon={Plus}
-                loadingIcon={Loader2}
-                loadingText="Creating Room..."
-                label="Create Room"
-                className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-xl hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              />
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-200 mb-3">
+                    Room Name
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    placeholder="Enter a memorable room name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    className="w-full px-5 py-4 bg-zinc-800/70 border border-zinc-600/50 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200 hover:border-zinc-500/70"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-200 mb-3">
+                    Description <span className="text-slate-400 font-normal">(optional)</span>
+                  </label>
+                  <textarea
+                    name="description"
+                    placeholder="Describe what this room will be used for..."
+                    value={formData.description}
+                    onChange={handleChange}
+                    rows={3}
+                    className="w-full px-5 py-4 bg-zinc-800/70 border border-zinc-600/50 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200 resize-none hover:border-zinc-500/70"
+                  />
+                </div>
+
+                <div className="relative flex items-center justify-between p-5 bg-zinc-800/50 rounded-2xl border border-zinc-700/30">
+                  <label htmlFor="isPublic" className="flex items-center gap-3 cursor-pointer">
+                    {formData.isPublic ? (
+                      <Globe className="w-5 h-5 text-emerald-400" />
+                    ) : (
+                      <Lock className="w-5 h-5 text-amber-400" />
+                    )}
+                    <div>
+                      <span className="text-slate-100 font-semibold block">
+                        {formData.isPublic ? "Public Room" : "Private Room"}
+                      </span>
+                      <span className="text-slate-400 text-sm">
+                        {formData.isPublic
+                          ? "Anyone with the code can join"
+                          : "Only invited members can join"}
+                      </span>
+                    </div>
+                  </label>
+
+                  <div className="ml-auto">
+                    <label className="inline-flex relative items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        id="isPublic"
+                        name="isPublic"
+                        checked={formData.isPublic}
+                        onChange={handleChange}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500/50 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 relative" />
+                    </label>
+                  </div>
+                </div>
+
+                <Button
+                  label={loading ? "Creating..." : "Create Room"}
+                  onClick={handleSubmit}
+                  loading={loading}
+                  loadingIcon={Loader2}
+                  icon={Plus}
+                  variant="primary"
+                  size="md"
+                  className="w-full"
+                />
+              </div>
             </div>
           </div>
 
@@ -173,14 +199,15 @@ export default function CreateRoomPage() {
 
         <div className="relative mb-16">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-700"></div>
+            <div className="w-full border-t border-gradient-to-r from-transparent via-zinc-600/50 to-transparent"></div>
           </div>
           <div className="relative flex justify-center">
-            <span className="px-6 py-2 bg-slate-800 text-slate-400 rounded-full border border-slate-700">
-              Your Rooms
-            </span>
+            <div className="px-8 py-3 bg-gradient-to-r from-zinc-900 to-zinc-800 text-slate-200 rounded-full border border-zinc-600/50 shadow-lg">
+              <span className="font-semibold">Your Rooms</span>
+            </div>
           </div>
         </div>
+
         <OwnerRoomsSection />
       </div>
     </div>
