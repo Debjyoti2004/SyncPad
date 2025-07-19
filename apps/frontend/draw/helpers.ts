@@ -1,3 +1,5 @@
+//drawArrow, drawStar
+
 export function drawArrow(
   ctx: CanvasRenderingContext2D,
   fromX: number,

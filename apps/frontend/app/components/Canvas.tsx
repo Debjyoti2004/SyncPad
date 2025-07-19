@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import Draw, { Shape } from "../../draw"; 
+import Draw from "../../draw/index";
+import { Shape } from "../../draw/shapes";
 
 export interface CanvasProps {
   shape: Shape["type"];
