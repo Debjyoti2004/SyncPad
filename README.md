@@ -1,58 +1,92 @@
-# Turborepo Tailwind CSS starter
+# ✨ SyncPad – Collaborative Drawing Application
 
-This Turborepo starter is maintained by the Turborepo core team.
+![SyncPad Home Page](./assets/homepage.png)
 
-## Using this example
+SyncPad is a real-time, collaborative drawing application built with **Next.js**, **Express**, **TypeScript**, **Tailwind CSS**, and **Turborepo**. It allows multiple users to draw simultaneously on a shared canvas – no third-party APIs used. The canvas sync logic is handcrafted for optimal control and performance.
 
-Run the following command:
+---
 
-```sh
-npx create-turbo@latest -e with-tailwind
+## 📹 Demo
+
+[![Watch the demo](https://img.youtube.com/vi/6Da3nCCP1Vg/0.jpg)](https://youtu.be/6Da3nCCP1Vg)
+
+Click the image above to watch a full demo of **SyncPad** – a real-time collaborative drawing application powered by Next.js, Express, Tailwind CSS, and your own custom canvas sync logic.
+
+
+---
+
+## 🧠 Tech Stack
+
+- **Monorepo with Turborepo**
+- **Next.js** – Frontend Framework
+- **Express** – Custom Backend
+- **TypeScript** – Type Safety
+- **Tailwind CSS** – Styling
+- **Canvas API** – Custom drawing logic (no external APIs)
+- **Prisma + PostgreSQL** – For room/message persistence (optional/future use)
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/Debjyoti2004/SyncPad.git
+cd SyncPad
 ```
 
-## What's inside?
-
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app with [Tailwind CSS](https://tailwindcss.com/)
-- `web`: another [Next.js](https://nextjs.org/) app with [Tailwind CSS](https://tailwindcss.com/)
-- `ui`: a stub React component library with [Tailwind CSS](https://tailwindcss.com/) shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Building packages/ui
-
-This example is set up to produce compiled styles for `ui` components into the `dist` directory. The component `.tsx` files are consumed by the Next.js apps directly using `transpilePackages` in `next.config.ts`. This was chosen for several reasons:
-
-- Make sharing one `tailwind.config.ts` to apps and packages as easy as possible.
-- Make package compilation simple by only depending on the Next.js Compiler and `tailwindcss`.
-- Ensure Tailwind classes do not overwrite each other. The `ui` package uses a `ui-` prefix for it's classes.
-- Maintain clear package export boundaries.
-
-Another option is to consume `packages/ui` directly from source without building. If using this option, you will need to update the `tailwind.config.ts` in your apps to be aware of your package locations, so it can find all usages of the `tailwindcss` class names for CSS compilation.
-
-For example, in [tailwind.config.ts](packages/tailwind-config/tailwind.config.ts):
-
-```js
-  content: [
-    // app content
-    `src/**/*.{js,ts,jsx,tsx}`,
-    // include packages if not transpiling
-    "../../packages/ui/*.{js,ts,jsx,tsx}",
-  ],
+### 2. Install pnpm (if not already installed)
+```bash
+npm install -g pnpm
+```
+### 3. Install Dependencies
+From the project root:
+```bash
+pnpm install
+```
+### 4. ⚙️ Environment Setup
+1. Navigate to your project folder
+```bash
+cd packages/db 
+```
+2. Create a .env file and add the following:
+```bash
+DATABASE_URL="your_postgres_url"
+```
+### 5. 🛠️ Prisma Setup
+From the db package
+```bash
+npx prisma migrate dev --name init
+npx prisma generate
+```
+#### 6. 🧪 Run the App
+From the root of the monorepo:
+```bash
+cd ...
+pnpm build
+pnpm dev
 ```
 
-If you choose this strategy, you can remove the `tailwindcss` and `autoprefixer` dependencies from the `ui` package.
+Your application should now be running at *http://localhost:3000.*
 
-### Utilities
+## 📌 Features
 
-This Turborepo has some additional tools already setup for you:
+```markdown
+- 🎨 Real-time shared canvas  
+- 🧑‍🤝‍🧑 Multi-user collaboration  
+- ⚡ Instant synchronization (no lag)  
+- 🔐 Built using custom canvas sync logic (no third-party APIs)  
+- 🚀 Optimized with Turborepo for fast, scalable monorepo development  
 
-- [Tailwind CSS](https://tailwindcss.com/) for styles
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+```
+
+
+---
+
+### 💡 Contributing
+
+```markdown
+Contributions are welcome!  
+Feel free to fork the repository and submit a pull request 🚀
+
