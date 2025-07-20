@@ -8,7 +8,7 @@ SyncPad is a real-time, collaborative drawing application built with **Next.js**
 
 ## 📹 Demo
 
-[![Watch the demo](https://raw.githubusercontent.com/Debjyoti2004/SyncPad/dev/apps/frontend/public/homepage.png)](https://youtu.be/wNKNHBRvYC8)
+[![Watch the demo](/homepage.png)](https://youtu.be/wNKNHBRvYC8)
 
 
 
