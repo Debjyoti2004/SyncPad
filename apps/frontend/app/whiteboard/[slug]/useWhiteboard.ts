@@ -38,7 +38,6 @@ export function useWhiteboard({ params }: UseWhiteboardParams) {
         if (!res.ok) throw new Error("Failed to fetch roomId");
         const data = await res.json();
         setRoomId(data.room.id);
-        console.log("[WB] Room details:", data.room);
       } catch (err) {
         console.error("[WB] Error fetching roomId:", err);
       }
@@ -89,7 +88,6 @@ export function useWhiteboard({ params }: UseWhiteboardParams) {
     socketRef.current = socket;
 
     socket.onopen = () => {
-      console.log("[WB] WS connected");
       socket.send(JSON.stringify({ type: "joinRoom", room: roomId }));
     };
 
@@ -173,7 +171,6 @@ export function useWhiteboard({ params }: UseWhiteboardParams) {
         });
 
         const raw = await res.text();
-        console.log("[WB] Undo response:", res.status, raw);
 
         if (!res.ok) {
           let msg = `Undo failed (status ${res.status})`;

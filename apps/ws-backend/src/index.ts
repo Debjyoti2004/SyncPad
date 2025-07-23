@@ -31,7 +31,6 @@ wss.on("connection", (ws, request) => {
     const decoded = Jwt.verify(token, JWT_SECRET) as { userId: string };
     const userId = decoded.userId;
 
-    console.log(`[WS] New connection: userId=${userId}`);
     users.push({ userId, ws, rooms: [] });
 
     ws.on("message", async (raw) => {
@@ -53,7 +52,6 @@ wss.on("connection", (ws, request) => {
 
       // join
       if (type === "joinRoom") {
-        console.log(`[WS] User ${user.userId} joining room: ${room}`);
         if (!room || typeof room !== "string") {
           ws.send(JSON.stringify({ error: "Invalid or missing room ID" }));
           return;
@@ -75,7 +73,6 @@ wss.on("connection", (ws, request) => {
       // deleteShape  
       if (type === "deleteShape") {
         const { shapeId } = parsed;
-        console.log(`[WS] Delete shape request room=${room} shapeId=${shapeId}`);
 
         if (!room || typeof room !== "string" || !shapeId || typeof shapeId !== "string") {
           ws.send(JSON.stringify({ error: "Invalid deleteShape payload" }));
@@ -100,7 +97,6 @@ wss.on("connection", (ws, request) => {
       // message (new shape)  
       if (type === "message") {
         const { message } = parsed;
-        console.log("[WS] Incoming shape message:", { room, message });
 
         if (!room || typeof room !== "string") {
           ws.send(JSON.stringify({ error: "Room ID is required and must be a string" }));
@@ -128,7 +124,6 @@ wss.on("connection", (ws, request) => {
             },
           });
 
-          console.log("[WS] Shape stored in DB:", chatEntry.id);
 
           // broadcast new shape
           users.forEach((u) => {
@@ -155,7 +150,6 @@ wss.on("connection", (ws, request) => {
     });
 
     ws.on("close", () => {
-      console.log(`[WS] Connection closed: userId=${userId}`);
       const idx = users.findIndex((u) => u.ws === ws);
       if (idx !== -1) users.splice(idx, 1);
     });
