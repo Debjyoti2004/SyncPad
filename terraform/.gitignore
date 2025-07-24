@@ -1,0 +1,9 @@
+terraform.tfstate
+terraform.tfstate.backup
+crash.log
+.terraform/
+.terraform.lock.hcl
+SyncPad-key
+*.DS_Store
+.idea/
+.vscode/

@@ -3,7 +3,7 @@ import Jwt from "jsonwebtoken";
 import { JWT_SECRET } from "@repo/backend-common-file/config";
 import prismaClient from "@repo/db";
 
-const wss = new WebSocketServer({ port: 8080 });
+const wss = new WebSocketServer({ port: 4002 });
 
 interface UserConn {
   ws: WebSocket;

@@ -41,9 +41,9 @@ services:
         NODE_ENV: production
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "4001:4001"
     healthcheck:
-      test: ["CMD", "wget", "--spider", "http://localhost:3001/health"]
+      test: ["CMD", "wget", "--spider", "http://localhost:4001/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -69,9 +69,9 @@ services:
         NODE_ENV: production
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "4002:4002"
     healthcheck:
-      test: ["CMD", "wget", "--spider", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "--spider", "http://localhost:4002/health"]
       interval: 30s
       timeout: 10s
       retries: 3

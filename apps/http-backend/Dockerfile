@@ -37,6 +37,6 @@ RUN pnpm --filter @repo/db exec prisma generate
 
 WORKDIR /app/apps/http-backend
 
-EXPOSE 3001
+EXPOSE 4001
 
 CMD ["node", "dist/index.js"]
