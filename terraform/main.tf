@@ -50,13 +50,39 @@ resource "aws_security_group" "SyncPad_multi_port_sg" {
   }
 
   ingress {
-    description = ""
+    description = "Application Backend Port"
+    from_port   = 4001
+    to_port     = 4001
+    protocol    = "tcp"
+    cidr_blocks = [var.allowed_ip]
+  }
+  ingress {
+    description = "Application WebSocket Port"
+    from_port   = 4002
+    to_port     = 4002
+    protocol    = "tcp"
+    cidr_blocks = [var.allowed_ip]
   }
 
   ingress {
-    description = "Custom TCP 3000-10000"
+    description = "Application Frontend Port"
     from_port   = 3000
-    to_port     = 10000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = [var.allowed_ip]
+  }
+
+  ingress{
+    description = "Jenkins Port"
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = [var.allowed_ip]
+  }
+  ingress{
+    description = "SonarQube Port"
+    from_port   = 9000
+    to_port     = 9000
     protocol    = "tcp"
     cidr_blocks = [var.allowed_ip]
   }
