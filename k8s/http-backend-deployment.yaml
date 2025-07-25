@@ -29,7 +29,7 @@ spec:
           image: debjyoti08/syncpad_http_backend:latest
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 4000
+            - containerPort: 4001
           envFrom:
             - secretRef:
                 name: syncpad-secret
@@ -42,13 +42,13 @@ spec:
               memory: "256Mi"
           livenessProbe:
             httpGet:
-              path: /health
-              port: 4000
+              path: /status
+              port: 4001
             initialDelaySeconds: 10
             periodSeconds: 15
           readinessProbe:
             httpGet:
-              path: /health
-              port: 4000
+              path: /status
+              port: 4001
             initialDelaySeconds: 5
             periodSeconds: 10

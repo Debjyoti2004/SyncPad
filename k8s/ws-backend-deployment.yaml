@@ -29,7 +29,7 @@ spec:
           image: debjyoti08/syncpad_ws_backend:latest
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 4000
+            - containerPort: 4002
           envFrom:
             - secretRef:
                 name: syncpad-secret
@@ -40,15 +40,3 @@ spec:
             requests:
               cpu: "250m"
               memory: "256Mi"
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: 4000
-            initialDelaySeconds: 10
-            periodSeconds: 15
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: 4000
-            initialDelaySeconds: 5
-            periodSeconds: 10
