@@ -30,9 +30,6 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 4001
-          envFrom:
-            - secretRef:
-                name: syncpad-secret
           resources:
             limits:
               cpu: "500m"
