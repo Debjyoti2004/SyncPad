@@ -204,8 +204,6 @@ pipeline {
 
             archiveArtifacts artifacts: '*.xml,*.txt', followSymlinks: false
 
-            build job: "SyncPad-CD"
-
             mail(
                 to: 'debjyotishit27@gmail.com',
                 subject: "✅ CI Build Successful: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
