@@ -1,0 +1,264 @@
+@Library('shared-lib') _
+
+pipeline {
+    agent any
+
+    options {
+        skipDefaultCheckout(true)
+        timestamps()
+        timeout(time: 45, unit: 'MINUTES')
+        disableConcurrentBuilds()
+    }
+
+    triggers {
+        pollSCM('H/2 * * * *')
+    }
+
+    environment {
+        SONAR_SCANNER_HOME = tool name: "sonar-scanner"
+        PATH = "${SONAR_SCANNER_HOME}/bin:${env.PATH}"
+
+        DOCKER_REGISTRY = "debjyoti08"
+        DOCKER_TAG = "latest"
+        HTTP_BACKEND_IMAGE_NAME = "${DOCKER_REGISTRY}/syncpad_http_backend"
+        WS_BACKEND_IMAGE_NAME = "${DOCKER_REGISTRY}/syncpad_ws_backend"
+        FRONTEND_IMAGE_NAME = "${DOCKER_REGISTRY}/syncpad_frontend"
+
+        AWS_CREDENTIALS_ID = 'aws-access'
+    }
+
+    stages {
+        stage("Cleanup: Workspace") {
+            steps {
+                echo "[INFO] Cleaning up workspace..."
+                cleanWs()
+            }
+        }
+
+        stage("Git: Clone Application Repository") {
+            steps {
+                retry(2) { 
+                    script {
+                        code_checkout(
+                            repoUrl: "https://github.com/Debjyoti2004/SyncPad.git",
+                            branch: "prod",
+                            credentialsId: "gitCredentials"
+                        )
+                    }
+                }
+            }
+        }
+
+        stage("Prepare: Execute Pre-Docker Script") {
+            steps {
+                echo "[INFO] Making pre-docker.sh executable and running it..."
+                sh "chmod +x ./pre-docker.sh"
+                sh "./pre-docker.sh"
+            }
+        }
+
+        stage("Security Analysis: Code & Dependencies") {
+            stages {
+                stage("Filesystem Trivy Scan") {
+                    steps {
+                        script {
+                            echo "[INFO] Running Trivy filesystem scan..."
+                            trivy_scan()
+                        }
+                    }
+                }
+
+                stage("OWASP Dependency Check") {
+                    options {
+                        timeout(time: 40, unit: 'MINUTES')
+                    }
+                    steps {
+                        script {
+                            echo "[INFO] Running OWASP dependency check..."
+                            runDependencyCheck()
+                        }
+                    }
+                }
+
+                stage("SonarQube Analysis") {
+                    steps {
+                        script {
+                            echo "[INFO] Running SonarQube analysis..."
+                            runSonarQubeScan("sonar-scanner", "SyncPad", "SyncPad")
+                        }
+                    }
+                }
+
+                stage("SonarQube Quality Gate") {
+                    steps {
+                        script {
+                            echo "[INFO] Checking SonarQube quality gate status..."
+                            runSonarQubeQualityGate()
+                        }
+                    }
+                }
+            }
+        }
+
+        stage("Environment: Replace Localhost with Instance IP") {
+            steps {
+                withCredentials([usernamePassword(credentialsId: env.AWS_CREDENTIALS_ID, usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                    script {
+                        dir("automation") {
+                            sh '''
+                                echo "[INFO] Setting up frontend environment variables..."
+                                export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                                export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                                export AWS_REGION=ap-south-1
+
+                                chmod +x replace-localhost-fallbacks.sh
+                                ./replace-localhost-fallbacks.sh
+                            '''
+                        }
+                    }
+                }
+            }
+        }
+
+        stage("Build, Scan & Push Docker Images") {
+            parallel {
+                stage("HTTP Backend") {
+                    steps {
+                        script {
+                            echo "[INFO] Building HTTP Backend image: ${env.HTTP_BACKEND_IMAGE_NAME}:${env.DOCKER_TAG}"
+                            build_docker_image(
+                                imageName: env.HTTP_BACKEND_IMAGE_NAME,
+                                imageTag: env.DOCKER_TAG,
+                                dockerfile: 'apps/http-backend/Dockerfile',
+                                context: '.'
+                            )
+                            echo "[INFO] Scanning HTTP Backend image..."
+                            trivy_image_scan(
+                                imageName: env.HTTP_BACKEND_IMAGE_NAME,
+                                imageTag: env.DOCKER_TAG
+                            )
+                            echo "[INFO] Pushing HTTP Backend image..."
+                            push_docker_image(
+                                imageName: env.HTTP_BACKEND_IMAGE_NAME,
+                                imageTag: env.DOCKER_TAG,
+                                credentials: 'docker-hub-credentials'
+                            )
+                        }
+                    }
+                }
+                stage("WS Backend") {
+                    steps {
+                        script {
+                            echo "[INFO] Building WebSocket Backend image: ${env.WS_BACKEND_IMAGE_NAME}:${env.DOCKER_TAG}"
+                            build_docker_image(
+                                imageName: env.WS_BACKEND_IMAGE_NAME,
+                                imageTag: env.DOCKER_TAG,
+                                dockerfile: 'apps/ws-backend/Dockerfile',
+                                context: '.'
+                            )
+                            echo "[INFO] Scanning WebSocket Backend image..."
+                            trivy_image_scan(
+                                imageName: env.WS_BACKEND_IMAGE_NAME,
+                                imageTag: env.DOCKER_TAG
+                            )
+                            echo "[INFO] Pushing WebSocket Backend image..."
+                            push_docker_image(
+                                imageName: env.WS_BACKEND_IMAGE_NAME,
+                                imageTag: env.DOCKER_TAG,
+                                credentials: 'docker-hub-credentials'
+                            )
+                        }
+                    }
+                }
+                stage("Frontend") {
+                    steps {
+                        script {
+                            echo "[INFO] Building Frontend image: ${env.FRONTEND_IMAGE_NAME}:${env.DOCKER_TAG}"
+                            build_docker_image(
+                                imageName: env.FRONTEND_IMAGE_NAME,
+                                imageTag: env.DOCKER_TAG,
+                                dockerfile: 'apps/frontend/Dockerfile',
+                                context: '.'
+                            )
+                            echo "[INFO] Scanning Frontend image..."
+                            trivy_image_scan(
+                                imageName: env.FRONTEND_IMAGE_NAME,
+                                imageTag: env.DOCKER_TAG
+                            )
+                            echo "[INFO] Pushing Frontend image..."
+                            push_docker_image(
+                                imageName: env.FRONTEND_IMAGE_NAME,
+                                imageTag: env.DOCKER_TAG,
+                                credentials: 'docker-hub-credentials'
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "[✅] Build succeeded. Triggering CD pipeline: SyncPad-CD..."
+
+            archiveArtifacts artifacts: '*.xml,*.txt', followSymlinks: false
+
+            build job: "SyncPad-CD"
+
+            mail(
+                to: 'debjyotishit27@gmail.com',
+                subject: "✅ CI Build Successful: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """
+                    <!DOCTYPE html><html><body style="font-family: Arial, sans-serif;">
+                    <h2 style="color: green;">✅ CI Build Successful</h2>
+                    <p>The CI pipeline for <b>${env.JOB_NAME}</b> has completed successfully.</p>
+                    <table cellspacing="5" cellpadding="5" border="1" style="border-collapse: collapse;">
+                        <tr style="background-color: #f2f2f2;"><td><b>Job</b></td><td>${env.JOB_NAME}</td></tr>
+                        <tr><td><b>Build Number</b></td><td>${env.BUILD_NUMBER}</td></tr>
+                        <tr><td><b>Commit</b></td><td>${env.GIT_COMMIT.substring(0,8)}</td></tr>
+                        <tr><td><b>Build URL</b></td><td><a href="${env.BUILD_URL}">${env.BUILD_URL}</a></td></tr>
+                        <tr><td><b>Pushed Image Tag</b></td><td>${env.DOCKER_TAG}</td></tr>
+                        <tr><td><b>Triggered By</b></td><td>${currentBuild.getBuildCauses()[0].shortDescription}</td></tr>
+                    </table>
+                    <br>
+                    <p>The CD pipeline (<b>SyncPad-CD</b>) has been triggered to deploy the new version.</p>
+                    <hr><p style="color: #666;"><i>This is an automated message.</i></p>
+                    </body></html>
+                """,
+                mimeType: 'text/html',
+                replyTo: 'debjyotishit8@gmail.com'
+            )
+        }
+
+        failure {
+            echo "[❌] Build failed. Sending failure notification..."
+
+            mail(
+                to: 'debjyotishit27@gmail.com',
+                subject: "❌ CI Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """
+                    <!DOCTYPE html><html><body style="font-family: Arial, sans-serif;">
+                    <h2 style="color: red;">❌ CI Build Failed</h2>
+                    <p>The CI pipeline for <b>${env.JOB_NAME}</b> has failed.</p>
+                    <table cellspacing="5" cellpadding="5" border="1" style="border-collapse: collapse;">
+                        <tr style="background-color: #f2f2f2;"><td><b>Job</b></td><td>${env.JOB_NAME}</td></tr>
+                        <tr><td><b>Build Number</b></td><td>${env.BUILD_NUMBER}</td></tr>
+                        <tr><td><b>Build URL</b></td><td><a href="${env.BUILD_URL}">${env.BUILD_URL}</a></td></tr>
+                        <tr><td><b>Triggered By</b></td><td>${currentBuild.getBuildCauses()[0].shortDescription}</td></tr>
+                    </table>
+                    <br>
+                    <p style="color: #a00;"><b>Action Required:</b> Please review the <a href="${env.BUILD_URL}console">console logs</a> to diagnose and resolve the issue.</p>
+                    <hr><p style="color: #666;"><i>This is an automated message.</i></p>
+                    </body></html>
+                """,
+                mimeType: 'text/html',
+                replyTo: 'debjyotishit8@gmail.com'
+            )
+        }
+
+        always {
+            echo "[ℹ️] CI process completed for build #${env.BUILD_NUMBER}."
+        }
+    }
+}
