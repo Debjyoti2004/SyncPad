@@ -10,24 +10,23 @@ pipeline {
         disableConcurrentBuilds()
     }
 
-
     environment {
         SONAR_SCANNER_HOME = tool name: "syncpad-sonarqube"
-        PATH = "${SONAR_SCANNER_HOME}/bin:${env.PATH}"
+        NODEJS_HOME = tool name: 'NodeJS-18'
+
+        PATH = "${NODEJS_HOME}/bin:${SONAR_SCANNER_HOME}/bin:${env.PATH}"
 
         DOCKER_REGISTRY = "debjyoti08"
         DOCKER_TAG = "latest"
         HTTP_BACKEND_IMAGE_NAME = "${DOCKER_REGISTRY}/syncpad_http_backend"
         WS_BACKEND_IMAGE_NAME = "${DOCKER_REGISTRY}/syncpad_ws_backend"
         FRONTEND_IMAGE_NAME = "${DOCKER_REGISTRY}/syncpad_frontend"
-
-        AWS_CREDENTIALS_ID = 'aws-access'
     }
 
     stages {
         stage("Cleanup: Workspace") {
             steps {
-                echo "[INFO] Cleaning up workspace..."
+                echo "[INFO] Cleaning up workspace before build..."
                 cleanWs()
             }
         }
@@ -46,11 +45,33 @@ pipeline {
             }
         }
 
+        stage("Check for CI Loop") {
+            steps {
+                script {
+                    def commitMessage = sh(returnStdout: true, script: 'git log -1 --pretty=%B').trim()
+                    echo "Last commit message: ${commitMessage}"
+
+                    if (commitMessage.startsWith('ci:')) {
+                        echo "Skipping build: This change was triggered by our own CI pipeline."
+                        currentBuild.result = 'ABORTED' 
+                        error("CI loop detected. Aborting build.")
+                    } else {
+                        echo "Proceeding with build: Commit is from a user."
+                    }
+                }
+            }
+        }
+
         stage("Prepare: Execute Pre-Docker Script") {
             steps {
-                echo "[INFO] Making pre-docker.sh executable and running it..."
-                sh "chmod +x ./pre-docker.sh"
-                sh "./pre-docker.sh"
+                sh '''
+                    echo "[INFO] Installing pnpm globally using npm..."
+                    npm install -g pnpm
+                    
+                    echo "[INFO] Making pre-docker.sh executable and running it..."
+                    chmod +x ./pre-docker.sh
+                    ./pre-docker.sh
+                '''
             }
         }
 
@@ -99,20 +120,14 @@ pipeline {
 
         stage("Environment: Replace Localhost with Instance IP") {
             steps {
-                withCredentials([usernamePassword(credentialsId: env.AWS_CREDENTIALS_ID, usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                    script {
-                        dir("automation") {
-                            sh '''
-                                echo "[INFO] Setting up frontend environment variables..."
-                                export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-                                export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-                                export AWS_REGION=ap-south-1
+                dir("automation") {
+                    sh '''
+                        echo "[INFO] Setting up frontend environment variables..."
+                        export AWS_REGION=us-east-1
 
-                                chmod +x replace-localhost-fallbacks.sh
-                                ./replace-localhost-fallbacks.sh
-                            '''
-                        }
-                    }
+                        chmod +x replace-localhost-fallbacks.sh
+                        ./replace-localhost-fallbacks.sh
+                    '''
                 }
             }
         }
@@ -123,23 +138,11 @@ pipeline {
                     steps {
                         script {
                             echo "[INFO] Building HTTP Backend image: ${env.HTTP_BACKEND_IMAGE_NAME}:${env.DOCKER_TAG}"
-                            build_docker_image(
-                                imageName: env.HTTP_BACKEND_IMAGE_NAME,
-                                imageTag: env.DOCKER_TAG,
-                                dockerfile: 'apps/http-backend/Dockerfile',
-                                context: '.'
-                            )
+                            build_docker_image(imageName: env.HTTP_BACKEND_IMAGE_NAME, imageTag: env.DOCKER_TAG, dockerfile: 'apps/http-backend/Dockerfile', context: '.')
                             echo "[INFO] Scanning HTTP Backend image..."
-                            trivy_image_scan(
-                                imageName: env.HTTP_BACKEND_IMAGE_NAME,
-                                imageTag: env.DOCKER_TAG
-                            )
+                            trivy_image_scan(imageName: env.HTTP_BACKEND_IMAGE_NAME, imageTag: env.DOCKER_TAG)
                             echo "[INFO] Pushing HTTP Backend image..."
-                            push_docker_image(
-                                imageName: env.HTTP_BACKEND_IMAGE_NAME,
-                                imageTag: env.DOCKER_TAG,
-                                credentials: 'docker-hub-credentials'
-                            )
+                            push_docker_image(imageName: env.HTTP_BACKEND_IMAGE_NAME, imageTag: env.DOCKER_TAG, credentials: 'docker-hub-credentials')
                         }
                     }
                 }
@@ -147,23 +150,11 @@ pipeline {
                     steps {
                         script {
                             echo "[INFO] Building WebSocket Backend image: ${env.WS_BACKEND_IMAGE_NAME}:${env.DOCKER_TAG}"
-                            build_docker_image(
-                                imageName: env.WS_BACKEND_IMAGE_NAME,
-                                imageTag: env.DOCKER_TAG,
-                                dockerfile: 'apps/ws-backend/Dockerfile',
-                                context: '.'
-                            )
+                            build_docker_image(imageName: env.WS_BACKEND_IMAGE_NAME, imageTag: env.DOCKER_TAG, dockerfile: 'apps/ws-backend/Dockerfile', context: '.')
                             echo "[INFO] Scanning WebSocket Backend image..."
-                            trivy_image_scan(
-                                imageName: env.WS_BACKEND_IMAGE_NAME,
-                                imageTag: env.DOCKER_TAG
-                            )
+                            trivy_image_scan(imageName: env.WS_BACKEND_IMAGE_NAME, imageTag: env.DOCKER_TAG)
                             echo "[INFO] Pushing WebSocket Backend image..."
-                            push_docker_image(
-                                imageName: env.WS_BACKEND_IMAGE_NAME,
-                                imageTag: env.DOCKER_TAG,
-                                credentials: 'docker-hub-credentials'
-                            )
+                            push_docker_image(imageName: env.WS_BACKEND_IMAGE_NAME, imageTag: env.DOCKER_TAG, credentials: 'docker-hub-credentials')
                         }
                     }
                 }
@@ -171,24 +162,39 @@ pipeline {
                     steps {
                         script {
                             echo "[INFO] Building Frontend image: ${env.FRONTEND_IMAGE_NAME}:${env.DOCKER_TAG}"
-                            build_docker_image(
-                                imageName: env.FRONTEND_IMAGE_NAME,
-                                imageTag: env.DOCKER_TAG,
-                                dockerfile: 'apps/frontend/Dockerfile',
-                                context: '.'
-                            )
+                            build_docker_image(imageName: env.FRONTEND_IMAGE_NAME, imageTag: env.DOCKER_TAG, dockerfile: 'apps/frontend/Dockerfile', context: '.')
                             echo "[INFO] Scanning Frontend image..."
-                            trivy_image_scan(
-                                imageName: env.FRONTEND_IMAGE_NAME,
-                                imageTag: env.DOCKER_TAG
-                            )
+                            trivy_image_scan(imageName: env.FRONTEND_IMAGE_NAME, imageTag: env.DOCKER_TAG)
                             echo "[INFO] Pushing Frontend image..."
-                            push_docker_image(
-                                imageName: env.FRONTEND_IMAGE_NAME,
-                                imageTag: env.DOCKER_TAG,
-                                credentials: 'docker-hub-credentials'
-                            )
+                            push_docker_image(imageName: env.FRONTEND_IMAGE_NAME, imageTag: env.DOCKER_TAG, credentials: 'docker-hub-credentials')
                         }
+                    }
+                }
+            }
+        }
+
+        stage("Trigger Deployment: Update Git Manifests") {
+            steps {
+                withCredentials([usernamePassword(credentialsId: "gitCredentials", usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
+                    script {
+                        echo "[INFO] Updating manifests in Git to trigger Argo CD sync..."
+
+                        sh "git config user.name 'Jenkins CI'"
+                        sh "git config user.email 'ci@jenkins.io'"
+
+                        def buildTimestamp = new Date().format("yyyyMMddHHmmss")
+                        
+                        sh """
+                            sed -i 's/ci-build-timestamp: .*/ci-build-timestamp: "${buildTimestamp}"/' k8s/*.yaml
+                        """
+
+                        sh "git add k8s/*.yaml"
+                        sh "git commit -m 'ci: Trigger deployment for build #${env.BUILD_NUMBER}'"
+                        
+                        sh "git remote set-url origin https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/Debjyoti2004/SyncPad.git"
+                        sh "git push origin HEAD:prod"
+
+                        echo "[SUCCESS] Manifests updated. Argo CD will now sync the changes."
                     }
                 }
             }
