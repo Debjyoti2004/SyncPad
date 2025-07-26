@@ -10,9 +10,6 @@ pipeline {
         disableConcurrentBuilds()
     }
 
-    triggers {
-        pollSCM('H/2 * * * *')
-    }
 
     environment {
         SONAR_SCANNER_HOME = tool name: "sonar-scanner"
