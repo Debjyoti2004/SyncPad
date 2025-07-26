@@ -6,7 +6,7 @@ pipeline {
     options {
         skipDefaultCheckout(true)
         timestamps()
-        timeout(time: 45, unit: 'MINUTES')
+        timeout(time: 60, unit: 'MINUTES')
         disableConcurrentBuilds()
     }
 
@@ -109,9 +109,11 @@ pipeline {
 
                 stage("SonarQube Quality Gate") {
                     steps {
-                        script {
-                            echo "[INFO] Checking SonarQube quality gate status..."
-                            runSonarQubeQualityGate()
+                        timeout(time: 15, unit: 'MINUTES') {
+                            script {
+                                echo "[INFO] Checking SonarQube quality gate status..."
+                                runSonarQubeQualityGate()
+                            }
                         }
                     }
                 }
@@ -172,33 +174,6 @@ pipeline {
                 }
             }
         }
-
-        stage("Trigger Deployment: Update Git Manifests") {
-            steps {
-                withCredentials([usernamePassword(credentialsId: "gitCredentials", usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
-                    script {
-                        echo "[INFO] Updating manifests in Git to trigger Argo CD sync..."
-
-                        sh "git config user.name 'Jenkins CI'"
-                        sh "git config user.email 'ci@jenkins.io'"
-
-                        def buildTimestamp = new Date().format("yyyyMMddHHmmss")
-                        
-                        sh """
-                            sed -i 's/ci-build-timestamp: .*/ci-build-timestamp: "${buildTimestamp}"/' k8s/*.yaml
-                        """
-
-                        sh "git add k8s/*.yaml"
-                        sh "git commit -m 'ci: Trigger deployment for build #${env.BUILD_NUMBER}'"
-                        
-                        sh "git remote set-url origin https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/Debjyoti2004/SyncPad.git"
-                        sh "git push origin HEAD:prod"
-
-                        echo "[SUCCESS] Manifests updated. Argo CD will now sync the changes."
-                    }
-                }
-            }
-        }
     }
 
     post {
@@ -231,7 +206,7 @@ pipeline {
                 replyTo: 'debjyotishit8@gmail.com'
             )
         }
-
+        
         failure {
             echo "[❌] Build failed. Sending failure notification..."
 
