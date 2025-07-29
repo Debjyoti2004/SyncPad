@@ -600,4 +600,19 @@ eksctl delete cluster --name=wanderlust --region=us-west-1
 
 ---
 
-You're now set up to monitor your cluster like a pro! Let me know if you'd like to add custom Grafana dashboards or alerting next.
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome!
+
+If you’d like to contribute to this project:
+
+1. 🍴 Fork the repository
+2. 🔧 Create a new branch (`git checkout -b feature/your-feature-name`)
+3. ✍️ Make your changes
+4. ✅ Commit your changes (`git commit -m "feat: add your feature"`)
+5. 🚀 Push to your branch (`git push origin feature/your-feature-name`)
+6. 🔃 Open a Pull Request
+
+Please make sure your code follows the project's coding style and includes relevant documentation/comments if necessary.
+
+Thank you for helping improve this project! 💙
