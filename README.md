@@ -101,15 +101,15 @@ Your application should now be running at *http://localhost:3000.*
 
 The prod branch includes full DevOps support, progressively adding:
 
-```text
-✅ CI/CD pipeline with Jenkins  
-🐳 Dockerized services (frontend, backend, WebSocket)  
-📦 PNPM workspace-aware multi-service build  
-🛡️ Security scans (Trivy, OWASP Dependency-Check)  
-🔍 Code quality analysis with SonarQube  
-🚦 Quality Gate with auto-pipeline enforcement  
-☁️ Kubernetes Deployment
-🔄 WebSocket message queue (e.g., Redis or BullMQ (in progress))  
-📈 Centralized logging + metrics (Prometheus + Grafana)  
-```
+
+1. ✅ CI/CD pipeline with Jenkins  
+2. 🐳 Dockerized services (frontend, backend, WebSocket)  
+3. 📦 PNPM workspace-aware multi-service build  
+4. 🛡️ Security scans (Trivy, OWASP Dependency-Check)  
+5. 🔍 Code quality analysis with SonarQube  
+6. 🚦 Quality Gate with auto-pipeline enforcement  
+7. ☁️ Kubernetes Deployment
+8. 🔄 WebSocket message queue (e.g., Redis or BullMQ (in progress))  
+9. 📈 Centralized logging + metrics (Prometheus + Grafana)  
+
 
