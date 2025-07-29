@@ -236,8 +236,10 @@ All necessary steps are scripted inside the `docker.sh` file — including the s
 ./docker.sh
 ```
 
-### After Sucessfully instll Sonarqube 
-![After-file-permission](https://raw.githubusercontent.com/Debjyoti2004/SyncPad/prod/assets/sonarqube-install.png)
+### ✅ SonarQube Successfully Installed
+
+![SonarQube Installed](https://raw.githubusercontent.com/Debjyoti2004/SyncPad/prod/assets/sonarqube-install.png)
+
 
 ### ✅ Post-Installation (Important Step):
 To run Docker without using sudo every time:
