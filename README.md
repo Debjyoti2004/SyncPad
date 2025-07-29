@@ -401,6 +401,51 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
   
   - <b> Now, go to <mark>User Info</mark> and update your argocd password
 
+## 🚀 ArgoCD CLI Login and Cluster Setup
+
+---
+
+### 🔐 Logging into ArgoCD via CLI
+
+Use the following command to log in to your ArgoCD server:
+
+```bash
+argocd login <ARGOCD_SERVER> --username admin --password <PASSWORD>
+```
+
+📷 _Login Screenshot:_
+
+![ArgoCD CLI Login](https://raw.githubusercontent.com/Debjyoti2004/SyncPad/prod/assets/argocd-login.png)
+
+---
+
+### 📡 Viewing All ArgoCD Services
+
+To check all the ArgoCD-related services running in your cluster:
+
+```bash
+kubectl get svc -n argocd
+```
+
+📷 _All ArgoCD Services:_
+
+![ArgoCD Services](https://raw.githubusercontent.com/Debjyoti2004/SyncPad/prod/assets/argocd-all-svc.png)
+
+---
+
+### 🌐 Verifying ArgoCD Cluster Connection
+
+To list all registered clusters with ArgoCD:
+
+```bash
+argocd cluster list
+```
+
+📷 _ArgoCD Cluster Screenshot:_
+
+![ArgoCD Cluster](https://raw.githubusercontent.com/Debjyoti2004/SyncPad/prod/assets/argocd-cluster.png)
+
+---
 ---
 
 
