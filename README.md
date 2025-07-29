@@ -97,9 +97,19 @@ Your application should now be running at *http://localhost:3000.*
 
 ---
 
-### 💡 Contributing
+# ⚙️ From Here, DevOps Takes Over 🚀
 
-```markdown
-Contributions are welcome!  
-Feel free to fork the repository and submit a pull request 🚀
+The prod branch includes full DevOps support, progressively adding:
+
+```text
+✅ CI/CD pipeline with Jenkins  
+🐳 Dockerized services (frontend, backend, WebSocket)  
+📦 PNPM workspace-aware multi-service build  
+🛡️ Security scans (Trivy, OWASP Dependency-Check)  
+🔍 Code quality analysis with SonarQube  
+🚦 Quality Gate with auto-pipeline enforcement  
+☁️ Kubernetes Deployment
+🔄 WebSocket message queue (e.g., Redis or BullMQ (in progress))  
+📈 Centralized logging + metrics (Prometheus + Grafana)  
+```
 
