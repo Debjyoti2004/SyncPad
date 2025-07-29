@@ -4,6 +4,19 @@
 
 SyncPad is a real-time, collaborative drawing application built with **Next.js**, **Express**, **TypeScript**, **Tailwind CSS**, and **Turborepo**. It allows multiple users to draw simultaneously on a shared canvas – no third-party APIs used. The canvas sync logic is handcrafted for optimal control and performance.
 
+
+> 🧩 This is a **Turborepo monorepo** project containing:
+> - A **Next.js frontend** (`packages/web`)
+> - An **Express backend** (`packages/http-backend`)
+> - A **WebSocket server** (`packages/ws-backend`)
+> - A **shared database layer** using Prisma (`packages/db`)
+
+> 🌿 There are two active branches:
+> - `dev`: Application development (code, logic, features)
+> - `prod`: Production-ready version with **DevOps pipelines** integrated
+
+---
+
 ---
 
 ## 📹 Demo
