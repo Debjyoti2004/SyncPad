@@ -225,6 +225,8 @@ http://<EC2_PUBLIC_IP>:8080
 ```
 Tip: If the page doesn't load immediately, give it a minute or two — Jenkins takes some time on the first startup.
 
+![SonarQube Installed](https://raw.githubusercontent.com/Debjyoti2004/SyncPad/prod/assets/jenkins-home.png)
+
 ## 🐳 Installing Docker & SonarQube
 
 Let's begin by installing our very first DevOps tool: **Docker**.  
