@@ -595,7 +595,7 @@ Once exposed, access Grafana from your browser:
 To delete your cluster when done:
 
 ```bash
-eksctl delete cluster --name=wanderlust --region=us-west-1
+eksctl delete cluster --name=SyncPad --region=us-easy-1
 ```
 
 ---
